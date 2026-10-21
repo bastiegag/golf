@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" fill="none">
+  <rect width="640" height="480" fill="#E9E5DC"/>
+  <circle cx="490" cy="104" r="126" fill="#D9D5CA"/>
+  <circle cx="120" cy="430" r="170" fill="#D4DBD1"/>
+  <path d="M221 390V245c0-64 43-116 99-116s99 52 99 116v145H221Z" fill="#8B9A8A"/>
+  <path d="M254 390V250c0-43 29-78 66-78s66 35 66 78v140" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>
+  <text x="320" y="350" fill="#fff" fill-opacity=".8" font-family="Arial,sans-serif" font-size="11" letter-spacing="3" text-anchor="middle">MADE FOR DAILY LIFE</text>
+</svg>
