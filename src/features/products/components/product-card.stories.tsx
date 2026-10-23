@@ -22,6 +22,7 @@ type Story = StoryObj<typeof meta>;
 export const HarborKnit: Story = {
   args: {
     product: {
+      slug: 'harbor-knit',
       name: 'Harbor Knit',
       description: 'A soft, easy layer for cool mornings.',
       price: '68.00',

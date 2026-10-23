@@ -7,6 +7,7 @@ describe('ProductCard', () => {
     render(
       <ProductCard
         product={{
+          slug: 'harbor-knit',
           name: 'Harbor Knit',
           description: 'A soft, easy layer for cool mornings.',
           price: '68.00',
@@ -25,5 +26,8 @@ describe('ProductCard', () => {
     expect(
       screen.getByRole('img', { name: 'Harbor Knit' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Harbor Knit/ }),
+    ).toHaveAttribute('href', '/products/harbor-knit');
   });
 });

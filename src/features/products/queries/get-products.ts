@@ -1,6 +1,19 @@
 import 'server-only';
 import { getPrismaClient } from '@/lib/db/prisma';
 
+export function serializeProduct<
+  T extends {
+    price: {
+      toString(): string;
+    };
+  },
+>(product: T): Omit<T, 'price'> & { price: string } {
+  return {
+    ...product,
+    price: product.price.toString(),
+  };
+}
+
 export async function getActiveProducts() {
   const prisma = getPrismaClient();
 
@@ -13,8 +26,5 @@ export async function getActiveProducts() {
     orderBy: { createdAt: 'desc' },
   });
 
-  return products.map((product) => ({
-    ...product,
-    price: product.price.toString(),
-  }));
+  return products.map(serializeProduct);
 }
