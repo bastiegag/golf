@@ -25,8 +25,16 @@ const product = {
   price: '68.00',
   imageUrl: '/products/harbor-knit.svg',
   isActive: true,
+  categoryId: 'category-1',
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
+  category: {
+    id: 'category-1',
+    name: 'Clothing',
+    slug: 'clothing',
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+  },
 };
 
 describe('ProductPage', () => {
@@ -46,6 +54,9 @@ describe('ProductPage', () => {
     expect(
       screen.getByRole('link', { name: '← Back to the collection' }),
     ).toHaveAttribute('href', '/products');
+    expect(
+      screen.getByRole('link', { name: 'Clothing' }),
+    ).toHaveAttribute('href', '/products?category=clothing');
   });
 
   it('uses the product name and description for metadata', async () => {

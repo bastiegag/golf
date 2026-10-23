@@ -64,6 +64,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <p className="mt-5 text-lg leading-8 text-muted-foreground">
             {product.description}
           </p>
+          <Link
+            href={`/products?category=${product.category.slug}`}
+            className="mt-6 inline-flex text-sm font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground focus-visible:outline-offset-4"
+          >
+            {product.category.name}
+          </Link>
           <p className="mt-8 text-lg font-medium">
             {formatPrice(product.price)}
           </p>

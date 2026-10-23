@@ -14,7 +14,7 @@ A portfolio-quality storefront foundation for learning modern full-stack Next.js
 
 Pages and layout live in `src/app`. Reusable layout and UI components live in `src/components`; product presentation, queries, and schemas live in `src/features/products`. Product reads go directly through the server-only data-access layer in `src/features/products/queries`, and the Prisma client is isolated in `src/lib/db`.
 
-The products route is a Server Component and stays dynamic so it reads the current catalogue at request time. If `DATABASE_URL` is not configured, the query returns an empty catalogue so the storefront can still be previewed and built without a database. Prisma stores prices as PostgreSQL `Decimal`; formatting is centralized in the product feature.
+The products route is a Server Component and stays dynamic so it reads the current catalogue at request time. Products belong to one of the seeded categories: Clothing, Accessories, or Stationery. The catalogue supports server-side filtering with `/products?category=clothing`, `/products?category=accessories`, and `/products?category=stationery`; `/products` shows all active products. If `DATABASE_URL` is not configured, the query returns an empty catalogue so the storefront can still be previewed and built without a database. Prisma stores prices as PostgreSQL `Decimal`; formatting is centralized in the product feature.
 
 ## Local setup
 
@@ -22,8 +22,8 @@ Requirements: Node.js 22.12 or newer, npm, and PostgreSQL.
 
 1. Install packages: `npm install`
 2. Copy `.env.example` to `.env` and set `DATABASE_URL` to your local PostgreSQL database.
-3. Create/update the local schema: `npm run db:push`
-4. Add the sample catalogue: `npm run db:seed`
+3. Apply versioned migrations without resetting existing data: `npm run db:migrate`
+4. Add or update the sample catalogue and categories: `npm run db:seed`
 5. Start the development server: `npm run dev`
 
 The storefront is available at [http://localhost:3000](http://localhost:3000). Without PostgreSQL configuration, the homepage and empty products state still work.
@@ -40,17 +40,19 @@ The storefront is available at [http://localhost:3000](http://localhost:3000). W
 | `npm run format`          | Format supported source and config files            |
 | `npm run format:check`    | Check formatting without changing files             |
 | `npm run db:generate`     | Generate Prisma Client                              |
-| `npm run db:push`         | Apply the Prisma schema to the configured database  |
-| `npm run db:seed`         | Upsert the deterministic development catalogue      |
+| `npm run db:migrate`      | Create and apply local Prisma migrations            |
+| `npm run db:migrate:deploy` | Apply committed Prisma migrations without reset    |
+| `npm run db:push`         | Push the Prisma schema; avoid this for shared data  |
+| `npm run db:seed`         | Upsert the deterministic catalogue and categories   |
 | `npm run storybook`       | Start Storybook                                     |
 | `npm run build-storybook` | Build Storybook                                     |
 
 ## Testing
 
 - `npm run test:unit` runs Vitest and React Testing Library tests.
-- `npm run test:e2e` runs the Playwright storefront smoke and navigation tests. Install its browser once with `npx playwright install chromium`.
+- `npm run test:e2e` applies committed migrations, seeds the deterministic catalogue, and runs the Playwright storefront tests. It requires `DATABASE_URL` and a reachable PostgreSQL database, plus Chromium installed with `npx playwright install chromium`.
 
-Unit and browser tests do not require a database or production credentials.
+Unit tests do not require a database or production credentials. Browser tests use the configured database only for deterministic migration and seed setup.
 
 ## Planned MVP
 

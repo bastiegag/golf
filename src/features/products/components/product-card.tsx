@@ -8,6 +8,10 @@ export type ProductCardProduct = {
   description: string;
   price: number | string;
   imageUrl: string;
+  category: {
+    name: string;
+    slug: string;
+  };
 };
 
 type ProductCardProps = {

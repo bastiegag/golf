@@ -2,6 +2,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { productSeedSchema } from '../src/features/products/schemas/product-schema';
 
+const categorySeed = [
+  { name: 'Clothing', slug: 'clothing' },
+  { name: 'Accessories', slug: 'accessories' },
+  { name: 'Stationery', slug: 'stationery' },
+] as const;
+
 const productSeed = productSeedSchema.array().parse([
   {
     name: 'Harbor Knit',
@@ -9,6 +15,7 @@ const productSeed = productSeedSchema.array().parse([
     description: 'A soft, easy layer for cool mornings.',
     price: '68.00',
     imageUrl: '/products/placeholder.svg',
+    categorySlug: 'clothing',
   },
   {
     name: 'Everyday Tote',
@@ -16,6 +23,7 @@ const productSeed = productSeedSchema.array().parse([
     description: 'A sturdy carryall for wherever the day goes.',
     price: '42.00',
     imageUrl: '/products/placeholder.svg',
+    categorySlug: 'accessories',
   },
   {
     name: 'Field Notes Set',
@@ -23,6 +31,7 @@ const productSeed = productSeedSchema.array().parse([
     description: 'Three pocket notebooks for ideas in motion.',
     price: '18.00',
     imageUrl: '/products/placeholder.svg',
+    categorySlug: 'stationery',
   },
 ]);
 
@@ -37,11 +46,27 @@ async function seedProducts() {
   const prisma = new PrismaClient({ adapter });
 
   try {
+    for (const category of categorySeed) {
+      await prisma.category.upsert({
+        where: { slug: category.slug },
+        update: { name: category.name },
+        create: category,
+      });
+    }
+
     for (const product of productSeed) {
+      const { categorySlug, ...productData } = product;
+
       await prisma.product.upsert({
-        where: { slug: product.slug },
-        update: product,
-        create: product,
+        where: { slug: productData.slug },
+        update: {
+          ...productData,
+          category: { connect: { slug: categorySlug } },
+        },
+        create: {
+          ...productData,
+          category: { connect: { slug: categorySlug } },
+        },
       });
     }
   } finally {

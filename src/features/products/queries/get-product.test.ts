@@ -29,6 +29,8 @@ describe('getActiveProductBySlug', () => {
       price: { toString: () => '68.00' },
       imageUrl: '/products/harbor-knit.svg',
       isActive: true,
+      categoryId: 'category-1',
+      category: { name: 'Clothing', slug: 'clothing' },
     });
 
     await expect(getActiveProductBySlug('harbor-knit')).resolves.toMatchObject({
@@ -37,6 +39,7 @@ describe('getActiveProductBySlug', () => {
     });
     expect(findFirst).toHaveBeenCalledWith({
       where: { slug: 'harbor-knit', isActive: true },
+      include: { category: true },
     });
   });
 

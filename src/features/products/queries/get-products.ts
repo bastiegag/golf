@@ -14,7 +14,7 @@ export function serializeProduct<
   };
 }
 
-export async function getActiveProducts() {
+export async function getActiveProducts(categorySlug?: string) {
   const prisma = getPrismaClient();
 
   if (!prisma) {
@@ -22,9 +22,25 @@ export async function getActiveProducts() {
   }
 
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(categorySlug ? { category: { slug: categorySlug } } : {}),
+    },
     orderBy: { createdAt: 'desc' },
+    include: { category: true },
   });
 
   return products.map(serializeProduct);
+}
+
+export async function getActiveCategories() {
+  const prisma = getPrismaClient();
+
+  if (!prisma) {
+    return [];
+  }
+
+  return prisma.category.findMany({
+    orderBy: { name: 'asc' },
+  });
 }

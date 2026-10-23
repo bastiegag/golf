@@ -6,4 +6,5 @@ export const productSeedSchema = z.object({
   description: z.string().min(1),
   price: z.string().regex(/^\d+\.\d{2}$/),
   imageUrl: z.string().startsWith('/'),
+  categorySlug: z.string().min(1),
 });

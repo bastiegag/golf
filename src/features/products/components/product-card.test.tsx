@@ -12,6 +12,7 @@ describe('ProductCard', () => {
           description: 'A soft, easy layer for cool mornings.',
           price: '68.00',
           imageUrl: '/products/placeholder.svg',
+          category: { name: 'Clothing', slug: 'clothing' },
         }}
       />,
     );

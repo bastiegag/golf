@@ -14,6 +14,7 @@ export async function getActiveProductBySlug(slug: string) {
       slug,
       isActive: true,
     },
+    include: { category: true },
   });
 
   return product ? serializeProduct(product) : null;

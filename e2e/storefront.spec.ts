@@ -8,7 +8,9 @@ test('homepage introduces the store', async ({ page }) => {
   ).toBeVisible();
 });
 
-test('visitors can navigate to the product collection', async ({ page }) => {
+test('visitors can filter the product collection by category', async ({
+  page,
+}) => {
   await page.goto('/');
   await page.getByRole('link', { name: 'Shop', exact: true }).click();
 
@@ -18,18 +20,42 @@ test('visitors can navigate to the product collection', async ({ page }) => {
     }),
   ).toBeVisible();
 
-  const productLink = page.locator('a[href^="/products/"]').first();
-  if (await productLink.count()) {
-    await productLink.click();
-    await expect(
-      page.locator('h1'),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: '← Back to the collection' }),
-    ).toBeVisible();
-  } else {
-    await expect(page.getByText(/No products yet/)).toBeVisible();
-  }
+  await page.getByRole('link', { name: 'Clothing' }).click();
+  await expect(page).toHaveURL(/\/products\?category=clothing/);
+  await expect(
+    page.getByRole('heading', { name: 'Harbor Knit' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Everyday Tote' }),
+  ).not.toBeVisible();
+
+  await page.getByRole('link', { name: 'All products' }).click();
+  await expect(page).toHaveURL(/\/products$/);
+  await expect(
+    page.getByRole('heading', { name: 'Everyday Tote' }),
+  ).toBeVisible();
+});
+
+test('visitors can open a filtered catalogue directly', async ({ page }) => {
+  await page.goto('/products?category=stationery');
+
+  await expect(
+    page.getByRole('heading', { name: 'Field Notes Set' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Harbor Knit' }),
+  ).not.toBeVisible();
+});
+
+test('product details link back to their category', async ({ page }) => {
+  await page.goto('/products/harbor-knit');
+
+  await expect(
+    page.getByRole('heading', { name: 'Harbor Knit' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Clothing' }),
+  ).toHaveAttribute('href', '/products?category=clothing');
 });
 
 test('unknown product URLs return not found', async ({ page }) => {
