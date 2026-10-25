@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { getPrismaClient } from '@/lib/db/prisma';
+import { Prisma } from '@/generated/prisma/client';
 import {
   checkoutFieldsSchema,
   checkoutCartSchema,
@@ -59,6 +60,21 @@ export class IdempotencyConflictError extends OrderValidationError {
     );
     this.name = 'IdempotencyConflictError';
   }
+}
+
+function isIdempotencyUniqueConflict(error: unknown) {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== 'P2002'
+  ) {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  return (
+    target === 'idempotencyKey' ||
+    (Array.isArray(target) && target.includes('idempotencyKey'))
+  );
 }
 
 async function getPricedCart(cart: unknown) {
@@ -250,6 +266,10 @@ export async function createOrder(
   } catch (error) {
     if (error instanceof OrderValidationError) {
       throw error;
+    }
+
+    if (!isIdempotencyUniqueConflict(error)) {
+      throw new Error('Unable to create the order.');
     }
 
     const existingOrder = await prisma.order.findUnique({

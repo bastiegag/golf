@@ -123,10 +123,14 @@ test('checkout explains when the cart is empty', async ({ page }) => {
 });
 
 test('confirmation pages require a valid access token', async ({ page }) => {
-  await page.goto(
+  const response = await page.goto(
     '/orders/GOLF-NOT-REAL/confirmation?token=not-a-valid-token',
   );
 
+  expect(response).not.toBeNull();
+  expect(response?.headers()['cache-control']).toContain('no-store');
+  expect(response?.headers()['referrer-policy']).toBe('no-referrer');
+  expect(response?.headers()['x-robots-tag']).toBe('noindex, nofollow');
   await expect(
     page.getByRole('heading', { name: 'Page not found' }),
   ).toBeVisible();

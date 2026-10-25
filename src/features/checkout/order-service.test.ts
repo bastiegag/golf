@@ -158,4 +158,28 @@ describe('createOrder', () => {
     ).rejects.toBeInstanceOf(IdempotencyConflictError);
     expect(create).not.toHaveBeenCalled();
   });
+
+  it('does not treat an unexpected database error as an idempotent success', async () => {
+    const databaseError = new Error('connection lost');
+    mockedGetPrismaClient.mockReturnValue({
+      $transaction: vi.fn().mockRejectedValue(databaseError),
+      order: { findUnique: findExisting },
+    } as never);
+    findExisting.mockResolvedValue({
+      orderNumber: 'GOLF-SHOULD-NOT-BE-USED',
+      confirmationToken: 'secret',
+      totalCents: 6800,
+      requestFingerprint: 'unrelated',
+    });
+
+    await expect(
+      createOrder({
+        idempotencyKey: '6a6f9d5a-5582-40e4-8c5a-2c113932e7e4',
+        checkout,
+        cart: [{ productId: 'product-1', quantity: 1 }],
+        acceptedTotalCents: 6800,
+      }),
+    ).rejects.toThrow('Unable to create the order.');
+    expect(findExisting).not.toHaveBeenCalled();
+  });
 });

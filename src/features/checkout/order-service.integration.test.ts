@@ -1,9 +1,15 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createOrder, PriceChangedError } from './order-service';
+import {
+  createOrder,
+  PriceChangedError,
+} from './order-service';
+import { getOrderForConfirmation } from './queries/get-order';
+import { decimalPriceToCents } from './order-utils';
+import { randomUUID } from 'node:crypto';
 
-const testKeyPrefix = `integration-${Date.now()}-`;
+const testKeys = new Set<string>();
 const checkout = {
   customerName: 'Integration Test',
   customerEmail: 'integration@example.com',
@@ -26,6 +32,13 @@ const prisma = new PrismaClient({
 });
 
 let productId: string;
+let productPriceCents: number;
+
+function createTestKey() {
+  const key = randomUUID();
+  testKeys.add(key);
+  return key;
+}
 
 describe('order service PostgreSQL integration', () => {
   beforeAll(async () => {
@@ -37,21 +50,20 @@ describe('order service PostgreSQL integration', () => {
       throw new Error('The seeded harbor-knit product is required.');
     }
     productId = product.id;
+    productPriceCents = decimalPriceToCents(product.price);
   });
 
   afterAll(async () => {
-    await prisma.order.deleteMany({
-      where: { idempotencyKey: { startsWith: testKeyPrefix } },
-    });
+    await prisma.order.deleteMany({ where: { idempotencyKey: { in: [...testKeys] } } });
     await prisma.$disconnect();
   });
 
   it('creates an order with authoritative totals and snapshots', async () => {
     const result = await createOrder({
-      idempotencyKey: `${testKeyPrefix}success`,
+      idempotencyKey: createTestKey(),
       checkout,
       cart: [{ productId, quantity: 2 }],
-      acceptedTotalCents: 13600,
+      acceptedTotalCents: productPriceCents * 2,
     });
 
     const order = await prisma.order.findUnique({
@@ -60,36 +72,40 @@ describe('order service PostgreSQL integration', () => {
     });
 
     expect(order).toMatchObject({
-      totalCents: 13600,
-      subtotalCents: 13600,
+      totalCents: productPriceCents * 2,
+      subtotalCents: productPriceCents * 2,
       requestFingerprint: expect.any(String),
       items: [
         expect.objectContaining({
           productId,
           productNameSnapshot: 'Harbor Knit',
-          unitPriceCents: 6800,
+          unitPriceCents: productPriceCents,
           quantity: 2,
-          lineTotalCents: 13600,
+          lineTotalCents: productPriceCents * 2,
         }),
       ],
     });
   });
 
   it('rejects stale totals and returns one order for concurrent retries', async () => {
+    const staleKey = createTestKey();
     await expect(
       createOrder({
-        idempotencyKey: `${testKeyPrefix}stale`,
+        idempotencyKey: staleKey,
         checkout,
         cart: [{ productId, quantity: 1 }],
         acceptedTotalCents: 1,
       }),
     ).rejects.toBeInstanceOf(PriceChangedError);
+    expect(
+      await prisma.order.count({ where: { idempotencyKey: staleKey } }),
+    ).toBe(0);
 
     const input = {
-      idempotencyKey: `${testKeyPrefix}concurrent`,
+      idempotencyKey: createTestKey(),
       checkout,
       cart: [{ productId, quantity: 1 }],
-      acceptedTotalCents: 6800,
+      acceptedTotalCents: productPriceCents,
     };
     const results = await Promise.all([
       createOrder(input),
@@ -102,5 +118,37 @@ describe('order service PostgreSQL integration', () => {
         where: { idempotencyKey: input.idempotencyKey },
       }),
     ).toBe(1);
+  });
+
+  it('rejects conflicting idempotency requests without changing the original order', async () => {
+    const idempotencyKey = createTestKey();
+    const original = await createOrder({
+      idempotencyKey,
+      checkout,
+      cart: [{ productId, quantity: 1 }],
+      acceptedTotalCents: productPriceCents,
+    });
+
+    await expect(
+      createOrder({
+        idempotencyKey,
+        checkout: { ...checkout, customerName: 'Different Customer' },
+        cart: [{ productId, quantity: 1 }],
+        acceptedTotalCents: productPriceCents,
+      }),
+    ).rejects.toThrow('already used for different order details');
+
+    expect(
+      await prisma.order.count({ where: { idempotencyKey } }),
+    ).toBe(1);
+    expect(
+      await getOrderForConfirmation(original.orderNumber, 'wrong-token'),
+    ).toBeNull();
+    expect(
+      await getOrderForConfirmation(
+        original.orderNumber,
+        original.confirmationToken,
+      ),
+    ).toMatchObject({ orderNumber: original.orderNumber });
   });
 });
