@@ -1,6 +1,6 @@
 # Golf
 
-A portfolio-quality storefront foundation for learning modern full-stack Next.js. The current release focuses on a responsive storefront, server-rendered product catalogue, product categories, and a persistent client-side shopping cart. It intentionally does not include checkout, payments, authentication, or administration.
+A portfolio-quality storefront foundation for learning modern full-stack Next.js. The current release focuses on a responsive storefront, server-rendered product catalogue, product categories, a persistent client-side shopping cart, and simulated checkout with PostgreSQL orders. It intentionally does not include real payments, authentication, or administration.
 
 ## Technology
 
@@ -14,7 +14,7 @@ A portfolio-quality storefront foundation for learning modern full-stack Next.js
 
 Pages and layout live in `src/app`. Reusable layout and UI components live in `src/components`; product presentation, queries, and schemas live in `src/features/products`. Product reads go directly through the server-only data-access layer in `src/features/products/queries`, and the Prisma client is isolated in `src/lib/db`.
 
-The products route is a Server Component and stays dynamic so it reads the current catalogue at request time. Products belong to one of the seeded categories: Clothing, Accessories, or Stationery. The catalogue supports server-side filtering with `/products?category=clothing`, `/products?category=accessories`, and `/products?category=stationery`; `/products` shows all active products. The cart is managed in a dedicated React Context with a pure reducer and persisted as validated, versioned localStorage data. Cart prices use integer cents for calculations. Persisted cart data is untrusted: a future checkout flow must re-fetch products and authoritative prices from PostgreSQL, validate availability and quantities, and calculate totals on the server. If `DATABASE_URL` is not configured, the query returns an empty catalogue so the storefront can still be previewed and built without a database. Prisma stores prices as PostgreSQL `Decimal`; formatting is centralized in the product feature.
+The products route is a Server Component and stays dynamic so it reads the current catalogue at request time. Products belong to one of the seeded categories: Clothing, Accessories, or Stationery. The catalogue supports server-side filtering with `/products?category=clothing`, `/products?category=accessories`, and `/products?category=stationery`; `/products` shows all active products. The cart is managed in a dedicated React Context with a pure reducer and persisted as validated, versioned localStorage data. Cart prices use integer cents for calculations. Checkout uses a Server Action to re-fetch active products and authoritative Decimal prices, calculate integer-cent totals, and create an atomic Order/OrderItem transaction. Persisted cart data is untrusted and is never authoritative for order pricing. If `DATABASE_URL` is not configured, the query returns an empty catalogue so the storefront can still be previewed and built without a database. Prisma stores prices as PostgreSQL `Decimal`; formatting is centralized in the product feature.
 
 ## Local setup
 
@@ -53,6 +53,14 @@ The storefront is available at [http://localhost:3000](http://localhost:3000). W
 - `npm run test:e2e` applies committed migrations, seeds the deterministic catalogue, and runs the Playwright storefront and cart tests. It requires `E2E_DATABASE_URL` (preferred) or `DATABASE_URL` pointing to a dedicated test database, plus Chromium installed with `npx playwright install chromium`. Playwright preparation is explicit in `e2e/global-setup.ts` and runs even when a development server is reused.
 
 Unit tests do not require a database or production credentials. Browser tests use the configured database only for deterministic migration and seed setup.
+
+## Checkout and orders
+
+Checkout is simulated: it does not process payments, taxes, or shipping charges. Submitting checkout creates a `CONFIRMED` `Order` and its `OrderItem` snapshots in PostgreSQL inside one Prisma transaction. The order stores an idempotency key so a retry of the same submission returns the existing order instead of creating a duplicate. Order items retain product names, slugs, unit prices, quantities, and line totals as historical snapshots.
+
+Product deletion is restricted when an order item references it. This preserves the product relation while the snapshots preserve historical display data if the product is later changed. Confirmation pages require both the human-readable order number and a random confirmation token; the order number alone is not sufficient access.
+
+Use `E2E_DATABASE_URL` for a dedicated checkout test database when running `npm run test:e2e`. Playwright applies committed migrations and runs the idempotent seed in [e2e/global-setup.ts](./e2e/global-setup.ts) before tests, including when a development server is reused.
 
 ## Planned MVP
 

@@ -17,8 +17,51 @@ model Product {
   isActive    Boolean  @default(true)
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItems  OrderItem[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique
+  confirmationToken String      @unique
+  idempotencyKey    String      @unique
+  customerEmail     String
+  customerName      String
+  shippingAddress   String
+  shippingCity      String
+  shippingRegion    String
+  shippingPostalCode String
+  shippingCountry   String
+  subtotalCents     Int
+  totalCents        Int
+  status            OrderStatus @default(CONFIRMED)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  items             OrderItem[]
+}
+
+model OrderItem {
+  id                 String  @id @default(cuid())
+  orderId            String
+  productId          String
+  productNameSnapshot String
+  productSlugSnapshot String
+  unitPriceCents     Int
+  quantity           Int
+  lineTotalCents     Int
+  order              Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product            Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Category {

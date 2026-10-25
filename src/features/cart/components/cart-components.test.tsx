@@ -76,4 +76,23 @@ describe('cart components', () => {
     expect(screen.getByRole('heading', { name: 'Your cart' })).toBeVisible();
     expect(screen.getByText('Your cart is empty')).toBeInTheDocument();
   });
+
+  it('disables add to cart at the maximum quantity', async () => {
+    const user = userEvent.setup();
+
+    renderWithCart(<AddToCartButton product={product} />);
+
+    const addButton = screen.getByRole('button', { name: 'Add to cart' });
+    await waitFor(() => expect(addButton).toBeEnabled());
+
+    for (let index = 0; index < 10; index += 1) {
+      await user.click(
+        screen.getByRole('button', { name: /Add to cart|Maximum quantity/ }),
+      );
+    }
+
+    expect(
+      screen.getByRole('button', { name: 'Maximum quantity reached' }),
+    ).toBeDisabled();
+  });
 });

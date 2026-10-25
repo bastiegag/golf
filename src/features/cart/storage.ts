@@ -53,8 +53,12 @@ export function saveCartItems(
     return;
   }
 
-  targetStorage.setItem(
-    CART_STORAGE_KEY,
-    JSON.stringify({ version: 1, items }),
-  );
+  try {
+    targetStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({ version: 1, items }),
+    );
+  } catch {
+    // Cart state remains available in memory when storage is unavailable.
+  }
 }

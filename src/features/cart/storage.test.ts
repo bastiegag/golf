@@ -55,4 +55,13 @@ describe('cart persistence', () => {
   it('does not require browser storage during server rendering', () => {
     expect(loadCartItems(null)).toEqual([]);
   });
+
+  it('keeps the cart usable when storage writes fail', () => {
+    const storage = createStorage();
+    storage.setItem = () => {
+      throw new Error('Storage quota exceeded');
+    };
+
+    expect(() => saveCartItems([item], storage)).not.toThrow();
+  });
 });

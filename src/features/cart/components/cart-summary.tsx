@@ -24,8 +24,8 @@ export function CartSummary() {
       <p className="mt-5 text-xs leading-5 text-muted-foreground">
         Taxes and shipping will be calculated later.
       </p>
-      <Button type="button" disabled className="mt-6 w-full">
-        Checkout unavailable
+      <Button asChild className="mt-6 w-full">
+        <Link href="/checkout">Proceed to checkout</Link>
       </Button>
       <Link
         href="/products"

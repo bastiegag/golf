@@ -88,6 +88,50 @@ test('visitors can complete a persistent cart journey', async ({ page }) => {
   await expect(page.getByText('Your cart is empty')).toBeVisible();
 });
 
+test('visitors can submit checkout and receive a confirmation', async ({
+  page,
+}) => {
+  await page.goto('/products/harbor-knit');
+  await page.getByRole('button', { name: 'Add to cart' }).click();
+  await page.getByRole('link', { name: 'Cart (1 items)' }).click();
+  await page.getByRole('link', { name: 'Proceed to checkout' }).click();
+
+  await page.getByLabel('Full name').fill('Alex Morgan');
+  await page.getByLabel('Email address').fill('alex@example.com');
+  await page.getByLabel('Street address').fill('10 Main Street');
+  await page.getByLabel('City').fill('Toronto');
+  await page.getByLabel('Province, state, or region').fill('Ontario');
+  await page.getByLabel('Postal or ZIP code').fill('M5V 2T6');
+  await page.getByLabel('Country').fill('Canada');
+  await page.getByRole('button', { name: 'Place order' }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Thank you, Alex Morgan.' }),
+  ).toBeVisible();
+  await expect(page.getByText('$68.00').first()).toBeVisible();
+  await page.goto('/cart');
+  await expect(page.getByText('Your cart is empty')).toBeVisible();
+});
+
+test('checkout explains when the cart is empty', async ({ page }) => {
+  await page.goto('/checkout');
+
+  await expect(page.getByText('Your cart is empty')).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Continue shopping' }),
+  ).toBeVisible();
+});
+
+test('confirmation pages require a valid access token', async ({ page }) => {
+  await page.goto(
+    '/orders/GOLF-NOT-REAL/confirmation?token=not-a-valid-token',
+  );
+
+  await expect(
+    page.getByRole('heading', { name: 'Page not found' }),
+  ).toBeVisible();
+});
+
 test('unknown product URLs return not found', async ({ page }) => {
   await page.goto('/products/not-a-real-product');
   await expect(
