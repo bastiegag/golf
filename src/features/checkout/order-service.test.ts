@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPrismaClient } from '@/lib/db/prisma';
-import { createOrder } from '@/features/checkout/order-service';
+import {
+  createOrder,
+  IdempotencyConflictError,
+  PriceChangedError,
+} from '@/features/checkout/order-service';
+import { createRequestFingerprint } from '@/features/checkout/fingerprint';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/db/prisma', () => ({
@@ -52,6 +57,7 @@ describe('createOrder', () => {
       idempotencyKey: '6a6f9d5a-5582-40e4-8c5a-2c113932e7e4',
       checkout,
       cart: [{ productId: 'product-1', quantity: 2 }],
+      acceptedTotalCents: 13798,
     });
 
     expect(result.totalCents).toBe(13798);
@@ -84,6 +90,11 @@ describe('createOrder', () => {
       orderNumber: 'GOLF-EXISTING',
       confirmationToken: 'token',
       totalCents: 6800,
+      requestFingerprint: createRequestFingerprint({
+        checkout,
+        cart: [{ productId: 'product-1', quantity: 1 }],
+        acceptedTotalCents: 6800,
+      }),
     };
     findExisting.mockResolvedValue(existing);
 
@@ -92,9 +103,59 @@ describe('createOrder', () => {
         idempotencyKey: '6a6f9d5a-5582-40e4-8c5a-2c113932e7e4',
         checkout,
         cart: [{ productId: 'product-1', quantity: 1 }],
+        acceptedTotalCents: 6800,
       }),
     ).resolves.toEqual(existing);
     expect(findProducts).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an accepted total that no longer matches database prices', async () => {
+    findProducts.mockResolvedValue([
+      {
+        id: 'product-1',
+        name: 'Harbor Knit',
+        slug: 'harbor-knit',
+        price: { toString: () => '68.99' },
+        isActive: true,
+      },
+    ]);
+
+    const error = await createOrder({
+      idempotencyKey: 'd4e3b26e-8b57-4cf7-a2cc-7bb1f4d5cf2a',
+      checkout,
+      cart: [{ productId: 'product-1', quantity: 1 }],
+      acceptedTotalCents: 6700,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(PriceChangedError);
+    expect(error).toMatchObject({
+      currentTotalCents: 6899,
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rejects reuse of an idempotency key for different request data', async () => {
+    const existing = {
+      orderNumber: 'GOLF-EXISTING',
+      confirmationToken: 'token',
+      totalCents: 6800,
+      requestFingerprint: createRequestFingerprint({
+        checkout,
+        cart: [{ productId: 'product-1', quantity: 1 }],
+        acceptedTotalCents: 6800,
+      }),
+    };
+    findExisting.mockResolvedValue(existing);
+
+    await expect(
+      createOrder({
+        idempotencyKey: '6a6f9d5a-5582-40e4-8c5a-2c113932e7e4',
+        checkout,
+        cart: [{ productId: 'product-1', quantity: 2 }],
+        acceptedTotalCents: 13798,
+      }),
+    ).rejects.toBeInstanceOf(IdempotencyConflictError);
     expect(create).not.toHaveBeenCalled();
   });
 });

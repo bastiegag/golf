@@ -46,3 +46,8 @@ export const checkoutCartSchema = z
   });
 
 export const idempotencyKeySchema = z.string().uuid();
+export const acceptedTotalCentsSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(2_147_483_647);

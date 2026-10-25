@@ -4,8 +4,10 @@ import { getPrismaClient } from '@/lib/db/prisma';
 import {
   checkoutFieldsSchema,
   checkoutCartSchema,
+  acceptedTotalCentsSchema,
   idempotencyKeySchema,
 } from './schemas';
+import { createRequestFingerprint } from './fingerprint';
 import {
   calculateOrderTotals,
   createConfirmationToken,
@@ -17,6 +19,7 @@ export type CreateOrderInput = {
   idempotencyKey: string;
   checkout: unknown;
   cart: unknown;
+  acceptedTotalCents: unknown;
 };
 
 export type CreatedOrder = {
@@ -37,6 +40,24 @@ export class OrderValidationError extends Error {
   ) {
     super(message);
     this.name = 'OrderValidationError';
+  }
+}
+
+export class PriceChangedError extends OrderValidationError {
+  constructor(readonly currentTotalCents: number) {
+    super(
+      'The total changed while you were checking out. Review and confirm the updated total.',
+    );
+    this.name = 'PriceChangedError';
+  }
+}
+
+export class IdempotencyConflictError extends OrderValidationError {
+  constructor() {
+    super(
+      'This checkout session was already used for different order details. Refresh and try again.',
+    );
+    this.name = 'IdempotencyConflictError';
   }
 }
 
@@ -119,11 +140,31 @@ export async function createOrder(
       ),
     );
   }
+  const acceptedTotalResult = acceptedTotalCentsSchema.safeParse(
+    input.acceptedTotalCents,
+  );
+  if (!acceptedTotalResult.success) {
+    throw new OrderValidationError(
+      'Review the total before placing your order.',
+    );
+  }
 
   const prisma = getPrismaClient();
   if (!prisma) {
     throw new Error('Database is unavailable.');
   }
+
+  const cartResult = checkoutCartSchema.safeParse(input.cart);
+  if (!cartResult.success) {
+    throw new OrderValidationError(
+      cartResult.error.issues[0]?.message ?? 'Review your cart.',
+    );
+  }
+  const requestFingerprint = createRequestFingerprint({
+    checkout: checkoutResult.data,
+    cart: cartResult.data,
+    acceptedTotalCents: acceptedTotalResult.data,
+  });
 
   try {
     return await prisma.$transaction(async (transaction) => {
@@ -133,18 +174,15 @@ export async function createOrder(
           orderNumber: true,
           confirmationToken: true,
           totalCents: true,
+          requestFingerprint: true,
         },
       });
 
       if (existingOrder) {
+        if (existingOrder.requestFingerprint !== requestFingerprint) {
+          throw new IdempotencyConflictError();
+        }
         return existingOrder;
-      }
-
-      const cartResult = checkoutCartSchema.safeParse(input.cart);
-      if (!cartResult.success) {
-        throw new OrderValidationError(
-          cartResult.error.issues[0]?.message ?? 'Review your cart.',
-        );
       }
 
       const products = await transaction.product.findMany({
@@ -179,6 +217,9 @@ export async function createOrder(
         };
       });
       const totals = calculateOrderTotals(pricedLines);
+      if (totals.totalCents !== acceptedTotalResult.data) {
+        throw new PriceChangedError(totals.totalCents);
+      }
       const orderNumber = createOrderNumber();
       const confirmationToken = createConfirmationToken();
 
@@ -187,6 +228,7 @@ export async function createOrder(
           orderNumber,
           confirmationToken,
           idempotencyKey: input.idempotencyKey,
+          requestFingerprint,
           ...checkoutResult.data,
           subtotalCents: totals.subtotalCents,
           totalCents: totals.totalCents,
@@ -210,21 +252,21 @@ export async function createOrder(
       throw error;
     }
 
-    try {
-      const existingOrder = await prisma.order.findUnique({
-        where: { idempotencyKey: input.idempotencyKey },
-        select: {
-          orderNumber: true,
-          confirmationToken: true,
-          totalCents: true,
-        },
-      });
+    const existingOrder = await prisma.order.findUnique({
+      where: { idempotencyKey: input.idempotencyKey },
+      select: {
+        orderNumber: true,
+        confirmationToken: true,
+        totalCents: true,
+        requestFingerprint: true,
+      },
+    });
 
-      if (existingOrder) {
-        return existingOrder;
+    if (existingOrder) {
+      if (existingOrder.requestFingerprint !== requestFingerprint) {
+        throw new IdempotencyConflictError();
       }
-    } catch {
-      throw new Error('Unable to create the order.');
+      return existingOrder;
     }
 
     throw new Error('Unable to create the order.');

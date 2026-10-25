@@ -12,7 +12,11 @@ type ConfirmationPageProps = {
 export const metadata: Metadata = {
   title: 'Order confirmation',
   description: 'Your Golf order confirmation.',
+  referrer: 'no-referrer',
 };
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function OrderConfirmationPage({
   params,

@@ -110,6 +110,16 @@ export function CheckoutForm() {
   }, [cartPayload, isHydrated, items.length]);
 
   useEffect(() => {
+    if (state.status !== 'price-changed' || !isHydrated || items.length === 0) {
+      return;
+    }
+
+    setPriceConfirmed(false);
+    setQuote({ status: 'loading' });
+    quoteCheckout(JSON.parse(cartPayload)).then(setQuote);
+  }, [cartPayload, isHydrated, items.length, state.status]);
+
+  useEffect(() => {
     if (state.status === 'success') {
       clearCart();
       router.push(
@@ -167,6 +177,11 @@ export function CheckoutForm() {
     <form action={formAction} className="mt-10 space-y-10">
       <input type="hidden" name="cart" value={cartPayload} />
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
+      <input
+        type="hidden"
+        name="acceptedTotalCents"
+        value={quote.status === 'success' ? quote.totalCents : ''}
+      />
 
       {state.status === 'error' ? (
         <div
@@ -175,6 +190,14 @@ export function CheckoutForm() {
         >
           {state.message}
         </div>
+      ) : null}
+      {state.status === 'price-changed' ? (
+        <p
+          className="rounded-sm border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          role="alert"
+        >
+          {state.message}
+        </p>
       ) : null}
       {quote.status === 'error' ? (
         <p className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">

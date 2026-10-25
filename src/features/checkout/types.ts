@@ -21,6 +21,10 @@ export type CheckoutActionState =
       fieldErrors?: CheckoutFieldErrors;
     }
   | {
+      status: 'price-changed';
+      message: string;
+    }
+  | {
       status: 'success';
       orderNumber: string;
       confirmationToken: string;

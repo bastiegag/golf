@@ -4,6 +4,8 @@ import { idempotencyKeySchema } from './schemas';
 import {
   createOrder,
   getCheckoutQuote,
+  PriceChangedError,
+  IdempotencyConflictError,
   OrderValidationError,
 } from './order-service';
 import type { CheckoutActionState } from './types';
@@ -37,11 +39,19 @@ export async function submitCheckout(
       message: 'Your cart could not be read. Review it and try again.',
     };
   }
+  const acceptedTotalCents = Number(getFormString(formData, 'acceptedTotalCents'));
+  if (!Number.isSafeInteger(acceptedTotalCents)) {
+    return {
+      status: 'error',
+      message: 'Review the total before placing your order.',
+    };
+  }
 
   try {
     const order = await createOrder({
       idempotencyKey: idempotencyKey.data,
       cart,
+      acceptedTotalCents,
       checkout: {
         customerName: getFormString(formData, 'customerName'),
         customerEmail: getFormString(formData, 'customerEmail'),
@@ -55,6 +65,12 @@ export async function submitCheckout(
 
     return { status: 'success', ...order };
   } catch (error) {
+    if (error instanceof PriceChangedError) {
+      return { status: 'price-changed', message: error.message };
+    }
+    if (error instanceof IdempotencyConflictError) {
+      return { status: 'error', message: error.message };
+    }
     if (error instanceof OrderValidationError) {
       return {
         status: 'error',

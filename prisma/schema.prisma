@@ -33,6 +33,7 @@ model Order {
   orderNumber       String      @unique
   confirmationToken String      @unique
   idempotencyKey    String      @unique
+  requestFingerprint String?
   customerEmail     String
   customerName      String
   shippingAddress   String
