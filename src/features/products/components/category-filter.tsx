@@ -8,21 +8,25 @@ type CategoryFilterCategory = {
 type CategoryFilterProps = {
   categories: CategoryFilterCategory[];
   selectedCategory?: string;
+  isInvalidCategory?: boolean;
 };
 
 export function CategoryFilter({
   categories,
   selectedCategory,
+  isInvalidCategory = false,
 }: CategoryFilterProps) {
+  const isAllSelected = !selectedCategory && !isInvalidCategory;
+
   return (
     <nav aria-label="Filter products by category">
       <ul className="flex list-none flex-wrap gap-2 p-0">
         <li>
           <Link
             href="/products"
-            aria-current={!selectedCategory ? 'page' : undefined}
+            aria-current={isAllSelected ? 'page' : undefined}
             className={`inline-flex rounded-full border px-4 py-2 text-sm transition-colors focus-visible:outline-offset-2 ${
-              !selectedCategory
+              isAllSelected
                 ? 'border-foreground bg-foreground text-background'
                 : 'border-border text-muted-foreground hover:border-foreground hover:text-foreground'
             }`}

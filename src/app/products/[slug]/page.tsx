@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
+import { priceToCents } from '@/features/cart/utils';
 import { getActiveProductBySlug } from '@/features/products/queries/get-product';
 import { formatPrice } from '@/features/products/utils/format-price';
 
@@ -33,6 +35,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (!product) {
     notFound();
+  }
+
+  const priceCents = priceToCents(product.price);
+
+  if (priceCents === null) {
+    throw new Error(`Invalid price for product "${product.slug}".`);
   }
 
   return (
@@ -73,6 +81,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <p className="mt-8 text-lg font-medium">
             {formatPrice(product.price)}
           </p>
+          <div className="mt-8">
+            <AddToCartButton
+              product={{
+                productId: product.id,
+                slug: product.slug,
+                name: product.name,
+                priceCents,
+                imageUrl: product.imageUrl,
+              }}
+            />
+          </div>
         </div>
       </article>
     </div>

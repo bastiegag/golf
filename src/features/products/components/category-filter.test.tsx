@@ -43,4 +43,17 @@ describe('CategoryFilter', () => {
       within(filter).getByRole('link', { name: 'All products' }),
     ).not.toHaveAttribute('aria-current');
   });
+
+  it('does not mark all products for an invalid category', () => {
+    render(
+      <CategoryFilter
+        categories={categories}
+        isInvalidCategory
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'All products' }),
+    ).not.toHaveAttribute('aria-current');
+  });
 });

@@ -35,8 +35,9 @@ export default async function ProductsPage({
   )
     ? categorySlug
     : undefined;
+  const isInvalidCategory = Boolean(categorySlug && !selectedCategory);
   const emptyMessage = categorySlug
-    ? 'No products found in this category.'
+    ? 'No products found for this category.'
     : 'No products yet. Connect PostgreSQL and run the seed command to stock the store.';
 
   return (
@@ -58,6 +59,7 @@ export default async function ProductsPage({
         <CategoryFilter
           categories={categories}
           selectedCategory={selectedCategory}
+          isInvalidCategory={isInvalidCategory}
         />
       </div>
 

@@ -77,11 +77,11 @@ describe('ProductsPage', () => {
     );
 
     expect(
-      screen.getByText('No products found in this category.'),
+      screen.getByText('No products found for this category.'),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link', { name: 'All products' })[0],
-    ).toHaveAttribute('aria-current', 'page');
+    ).not.toHaveAttribute('aria-current');
   });
 
   it('renders the empty catalogue state without a filter', async () => {

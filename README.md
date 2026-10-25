@@ -1,6 +1,6 @@
 # Golf
 
-A portfolio-quality storefront foundation for learning modern full-stack Next.js. The initial release focuses on a responsive storefront, server-rendered product catalogue, and a small PostgreSQL-backed product model. It intentionally does not include cart persistence, checkout, payments, authentication, or administration.
+A portfolio-quality storefront foundation for learning modern full-stack Next.js. The current release focuses on a responsive storefront, server-rendered product catalogue, product categories, and a persistent client-side shopping cart. It intentionally does not include checkout, payments, authentication, or administration.
 
 ## Technology
 
@@ -14,7 +14,7 @@ A portfolio-quality storefront foundation for learning modern full-stack Next.js
 
 Pages and layout live in `src/app`. Reusable layout and UI components live in `src/components`; product presentation, queries, and schemas live in `src/features/products`. Product reads go directly through the server-only data-access layer in `src/features/products/queries`, and the Prisma client is isolated in `src/lib/db`.
 
-The products route is a Server Component and stays dynamic so it reads the current catalogue at request time. Products belong to one of the seeded categories: Clothing, Accessories, or Stationery. The catalogue supports server-side filtering with `/products?category=clothing`, `/products?category=accessories`, and `/products?category=stationery`; `/products` shows all active products. If `DATABASE_URL` is not configured, the query returns an empty catalogue so the storefront can still be previewed and built without a database. Prisma stores prices as PostgreSQL `Decimal`; formatting is centralized in the product feature.
+The products route is a Server Component and stays dynamic so it reads the current catalogue at request time. Products belong to one of the seeded categories: Clothing, Accessories, or Stationery. The catalogue supports server-side filtering with `/products?category=clothing`, `/products?category=accessories`, and `/products?category=stationery`; `/products` shows all active products. The cart is managed in a dedicated React Context with a pure reducer and persisted as validated, versioned localStorage data. Cart prices use integer cents for calculations. Persisted cart data is untrusted: a future checkout flow must re-fetch products and authoritative prices from PostgreSQL, validate availability and quantities, and calculate totals on the server. If `DATABASE_URL` is not configured, the query returns an empty catalogue so the storefront can still be previewed and built without a database. Prisma stores prices as PostgreSQL `Decimal`; formatting is centralized in the product feature.
 
 ## Local setup
 
@@ -50,7 +50,7 @@ The storefront is available at [http://localhost:3000](http://localhost:3000). W
 ## Testing
 
 - `npm run test:unit` runs Vitest and React Testing Library tests.
-- `npm run test:e2e` applies committed migrations, seeds the deterministic catalogue, and runs the Playwright storefront tests. It requires `DATABASE_URL` and a reachable PostgreSQL database, plus Chromium installed with `npx playwright install chromium`.
+- `npm run test:e2e` applies committed migrations, seeds the deterministic catalogue, and runs the Playwright storefront and cart tests. It requires `E2E_DATABASE_URL` (preferred) or `DATABASE_URL` pointing to a dedicated test database, plus Chromium installed with `npx playwright install chromium`. Playwright preparation is explicit in `e2e/global-setup.ts` and runs even when a development server is reused.
 
 Unit tests do not require a database or production credentials. Browser tests use the configured database only for deterministic migration and seed setup.
 

@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   reporter: 'list',
   use: {
@@ -15,8 +16,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command:
-      'npm run db:migrate:deploy && npm run db:seed && npm run dev',
+    command: 'npm run dev',
+    env: process.env.E2E_DATABASE_URL
+      ? { DATABASE_URL: process.env.E2E_DATABASE_URL }
+      : undefined,
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

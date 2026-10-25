@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShoppingBag } from 'lucide-react';
+import { CartIndicator } from '@/features/cart/components/cart-indicator';
 
 export function SiteHeader() {
   return (
@@ -19,13 +19,7 @@ export function SiteHeader() {
           >
             Shop
           </Link>
-          <span
-            aria-label="Cart (coming soon)"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <ShoppingBag aria-hidden="true" size={18} />
-            <span className="hidden sm:inline">Cart</span>
-          </span>
+          <CartIndicator />
         </nav>
       </div>
     </header>

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ProductPage, {
   generateMetadata,
 } from '@/app/products/[slug]/page';
+import { CartProvider } from '@/features/cart/context';
 import { getActiveProductBySlug } from '@/features/products/queries/get-product';
 
 vi.mock('@/features/products/queries/get-product', () => ({
@@ -41,7 +42,11 @@ describe('ProductPage', () => {
   it('renders product information and catalogue navigation', async () => {
     mockedGetActiveProductBySlug.mockResolvedValue(product);
 
-    render(await ProductPage({ params: Promise.resolve({ slug: product.slug }) }));
+    render(
+      <CartProvider>
+        {await ProductPage({ params: Promise.resolve({ slug: product.slug }) })}
+      </CartProvider>,
+    );
 
     expect(
       screen.getByRole('heading', { name: 'Harbor Knit' }),
