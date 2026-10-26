@@ -9,6 +9,11 @@ export default function globalSetup() {
       'Set E2E_DATABASE_URL (preferred) or DATABASE_URL before running Playwright tests.',
     );
   }
+  if (!process.env.AUTH_SECRET) {
+    throw new Error(
+      'Set AUTH_SECRET before running Playwright authentication tests.',
+    );
+  }
 
   const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const environment = {
@@ -21,6 +26,10 @@ export default function globalSetup() {
     stdio: 'inherit',
   });
   execFileSync(npmCommand, ['run', 'db:seed'], {
+    env: environment,
+    stdio: 'inherit',
+  });
+  execFileSync(npmCommand, ['exec', 'tsx', 'scripts/ensure-e2e-admin.ts'], {
     env: environment,
     stdio: 'inherit',
   });

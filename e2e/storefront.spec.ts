@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+const adminEmail = process.env.E2E_ADMIN_EMAIL;
+const adminPassword = process.env.E2E_ADMIN_PASSWORD;
+
 test('homepage introduces the store', async ({ page }) => {
   await page.goto('/');
 
@@ -141,4 +144,70 @@ test('unknown product URLs return not found', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Page not found' }),
   ).toBeVisible();
+});
+
+test.describe('administrator authentication', () => {
+  test.beforeEach(() => {
+    if (!adminEmail || !adminPassword) {
+      throw new Error(
+        'E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD are required for admin E2E tests.',
+      );
+    }
+  });
+
+  test('redirects unauthenticated admin visitors to login', async ({ page }) => {
+    await page.goto('/admin');
+    await expect(page).toHaveURL(/\/admin\/login$/);
+    await expect(
+      page.getByRole('heading', { name: 'Administrator sign in' }),
+    ).toBeVisible();
+  });
+
+  test('rejects invalid credentials with a generic error', async ({ page }) => {
+    await page.goto('/admin/login');
+    await page.getByLabel('Email').fill(adminEmail!);
+    await page.getByLabel('Password').fill('incorrect administrator password');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+
+    await expect(page.getByRole('alert')).toHaveText(
+      'Invalid email or password.',
+    );
+  });
+
+  test('preserves an authenticated session and supports sign out', async ({
+    page,
+  }) => {
+    await page.goto('/admin/login');
+    await page.getByLabel('Email').fill(adminEmail!);
+    await page.getByLabel('Password').fill(adminPassword!);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: /Welcome, E2E Administrator\./ }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: /Welcome, E2E Administrator\./ }),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL(/\/admin\/login$/);
+    await page.goto('/admin');
+    await expect(page).toHaveURL(/\/admin\/login$/);
+  });
+
+  test('leaves the public storefront and guest checkout available', async ({
+    page,
+  }) => {
+    await page.goto('/products/harbor-knit');
+    await expect(
+      page.getByRole('heading', { name: 'Harbor Knit' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Add to cart' }).click();
+    await page.getByRole('link', { name: 'Cart (1 items)' }).click();
+    await page.getByRole('link', { name: 'Proceed to checkout' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Checkout' }),
+    ).toBeVisible();
+  });
 });

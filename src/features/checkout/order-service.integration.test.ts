@@ -151,4 +151,47 @@ describe('order service PostgreSQL integration', () => {
       ),
     ).toMatchObject({ orderNumber: original.orderNumber });
   });
+
+  it('rolls back an order when a later item write fails', async () => {
+    const idempotencyKey = createTestKey();
+    const orderNumber = `GOLF-${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`;
+    const confirmationToken = randomUUID();
+
+    await expect(
+      prisma.$transaction(async (transaction) => {
+        const order = await transaction.order.create({
+          data: {
+            orderNumber,
+            confirmationToken,
+            idempotencyKey,
+            customerEmail: checkout.customerEmail,
+            customerName: checkout.customerName,
+            shippingAddress: checkout.shippingAddress,
+            shippingCity: checkout.shippingCity,
+            shippingRegion: checkout.shippingRegion,
+            shippingPostalCode: checkout.shippingPostalCode,
+            shippingCountry: checkout.shippingCountry,
+            subtotalCents: productPriceCents,
+            totalCents: productPriceCents,
+          },
+        });
+
+        await transaction.orderItem.create({
+          data: {
+            orderId: order.id,
+            productId: 'missing-product',
+            productNameSnapshot: 'Missing product',
+            productSlugSnapshot: 'missing-product',
+            unitPriceCents: productPriceCents,
+            quantity: 1,
+            lineTotalCents: productPriceCents,
+          },
+        });
+      }),
+    ).rejects.toThrow();
+
+    expect(
+      await prisma.order.count({ where: { idempotencyKey } }),
+    ).toBe(0);
+  });
 });
