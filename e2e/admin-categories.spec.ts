@@ -20,7 +20,8 @@ function runCleanup(
 ) {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const env = process.env;
-  if (productId) {
+  let cleanupError: unknown;
+  try {
     execFileSync(
       npm,
       [
@@ -28,14 +29,16 @@ function runCleanup(
         '--',
         'tsx',
         'scripts/cleanup-e2e-product.ts',
-        productId,
+        productId ?? '-',
         productSlug,
         `${productSlug}-updated`,
       ],
       { env, stdio: 'inherit' },
     );
+  } catch (error) {
+    cleanupError = error;
   }
-  if (categoryId) {
+  try {
     execFileSync(
       npm,
       [
@@ -43,13 +46,20 @@ function runCleanup(
         '--',
         'tsx',
         'scripts/cleanup-e2e-category.ts',
-        categoryId,
+        categoryId ?? '-',
         categorySlug,
         updatedCategorySlug,
       ],
       { env, stdio: 'inherit' },
     );
+  } catch (error) {
+    if (cleanupError) {
+      console.error('Category cleanup also failed after product cleanup failed.', error);
+    } else {
+      cleanupError = error;
+    }
   }
+  if (cleanupError) throw cleanupError;
 }
 
 test('administrator can manage category visibility', async ({ page }) => {
@@ -110,9 +120,17 @@ test('administrator can manage category visibility', async ({ page }) => {
 
     await page.goto('/admin/categories');
     const updatedRow = page.getByRole('row').filter({ hasText: updatedCategoryName });
-    page.once('dialog', (dialog) => dialog.accept());
+    page.once('dialog', (dialog) => dialog.dismiss());
     await updatedRow.getByRole('button', { name: 'Deactivate' }).click();
-    await expect(updatedRow.getByRole('button', { name: 'Activate' })).toBeVisible();
+    await expect(updatedRow.getByRole('button', { name: 'Deactivate' })).toBeVisible();
+    await page.goto(`/products/${productSlug}`);
+    await expect(page.getByRole('heading', { name: productName })).toBeVisible();
+
+    await page.goto('/admin/categories');
+    const activeRow = page.getByRole('row').filter({ hasText: updatedCategoryName });
+    page.once('dialog', (dialog) => dialog.accept());
+    await activeRow.getByRole('button', { name: 'Deactivate' }).click();
+    await expect(activeRow.getByRole('button', { name: 'Activate' })).toBeVisible();
     await page.goto('/products');
     await expect(page.getByRole('link', { name: updatedCategoryName })).not.toBeVisible();
     await page.goto(`/products/${productSlug}`);

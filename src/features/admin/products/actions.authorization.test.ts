@@ -111,4 +111,89 @@ describe('product action authorization', () => {
     await expect(toggleProductStatusAction(invalidStatus)).resolves.toBeUndefined();
     expect(getPrismaClient).not.toHaveBeenCalled();
   });
+
+  it('rejects creating or moving a product into an inactive category', async () => {
+    requireAdmin.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
+    const category = {
+      findUnique: vi.fn().mockResolvedValue({ id: 'category-1', isActive: false }),
+    };
+    const product = {
+      findUnique: vi.fn().mockResolvedValue({
+        id: 'product-1',
+        slug: 'product-1',
+        categoryId: 'active-category',
+      }),
+      create: vi.fn(),
+      update: vi.fn(),
+    };
+    getPrismaClient.mockReturnValue({ category, product });
+
+    const createResult = await createProductAction({}, formData);
+    expect(createResult).toMatchObject({
+      fieldErrors: { categoryId: 'Select an existing category.' },
+    });
+    const updateResult = await updateProductAction('product-1', {}, formData);
+    expect(updateResult).toMatchObject({
+      fieldErrors: { categoryId: 'Select an existing category.' },
+    });
+    expect(product.create).not.toHaveBeenCalled();
+    expect(product.update).not.toHaveBeenCalled();
+  });
+
+  it('allows editing an existing inactive assignment and moving to an active category', async () => {
+    requireAdmin.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
+    redirect.mockImplementation(() => {
+      throw new Error('redirect');
+    });
+    const category = {
+      findUnique: vi.fn().mockResolvedValue({ id: 'category-1', isActive: false }),
+    };
+    const product = {
+      findUnique: vi.fn().mockResolvedValue({
+        id: 'product-1',
+        slug: 'product-1',
+        categoryId: 'category-1',
+      }),
+      update: vi.fn().mockResolvedValue({ id: 'product-1' }),
+    };
+    getPrismaClient.mockReturnValue({ category, product });
+
+    await expect(
+      updateProductAction('product-1', {}, formData),
+    ).rejects.toThrow('redirect');
+    expect(product.update).toHaveBeenCalled();
+
+    category.findUnique.mockResolvedValue({ id: 'category-1', isActive: true });
+    product.findUnique.mockResolvedValue({
+      id: 'product-1',
+      slug: 'product-1',
+      categoryId: 'inactive-category',
+    });
+    await expect(
+      updateProductAction('product-1', {}, formData),
+    ).rejects.toThrow('redirect');
+    expect(product.update).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects deleted categories without writing a product', async () => {
+    requireAdmin.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
+    const product = {
+      findUnique: vi.fn().mockResolvedValue({
+        id: 'product-1',
+        slug: 'product-1',
+        categoryId: 'category-1',
+      }),
+      update: vi.fn(),
+    };
+    getPrismaClient.mockReturnValue({
+      category: { findUnique: vi.fn().mockResolvedValue(null) },
+      product,
+    });
+
+    const result = await updateProductAction('product-1', {}, formData);
+    expect(result).toMatchObject({
+      fieldErrors: { categoryId: 'Select an existing category.' },
+    });
+    expect(product.update).not.toHaveBeenCalled();
+  });
 });

@@ -184,14 +184,35 @@ describe('category administration PostgreSQL integration', () => {
       include: { items: true },
     });
     orderIds.push(persistedOrder.id);
+    const originalItem = persistedOrder.items[0];
+    const originalTotals = {
+      subtotalCents: persistedOrder.subtotalCents,
+      totalCents: persistedOrder.totalCents,
+    };
 
     await prisma.category.update({
       where: { id: category.id },
-      data: { name: 'Changed Snapshot Category', isActive: false },
+      data: {
+        name: 'Changed Snapshot Category',
+        slug: `changed-snapshot-category-${randomUUID()}`,
+        isActive: false,
+      },
     });
-    expect(persistedOrder.items[0]).toMatchObject({
-      productNameSnapshot: 'Category Snapshot Product',
-      unitPriceCents: 1925,
+    const freshOrder = await prisma.order.findUniqueOrThrow({
+      where: { id: persistedOrder.id },
+      include: { items: true },
+    });
+    expect(freshOrder).toMatchObject(originalTotals);
+    expect(freshOrder.items).toHaveLength(1);
+    expect(freshOrder.items[0]).toMatchObject({
+      id: originalItem.id,
+      orderId: originalItem.orderId,
+      productId: originalItem.productId,
+      productNameSnapshot: originalItem.productNameSnapshot,
+      productSlugSnapshot: originalItem.productSlugSnapshot,
+      unitPriceCents: originalItem.unitPriceCents,
+      quantity: originalItem.quantity,
+      lineTotalCents: originalItem.lineTotalCents,
     });
   });
 });

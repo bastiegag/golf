@@ -16,7 +16,6 @@ async function removeProduct(
   originalSlug: string,
   updatedSlug: string,
 ) {
-  if (!productId) return;
   execFileSync(
     process.platform === 'win32' ? 'npm.cmd' : 'npm',
     [
@@ -24,7 +23,7 @@ async function removeProduct(
       '--',
       'tsx',
       'scripts/cleanup-e2e-product.ts',
-      productId,
+      productId ?? '-',
       originalSlug,
       updatedSlug,
     ],

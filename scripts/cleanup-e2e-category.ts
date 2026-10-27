@@ -5,12 +5,13 @@ import { loadTestEnvironment } from './test-environment';
 const categoryId = process.argv[2];
 const originalSlug = process.argv[3];
 const updatedSlug = process.argv[4];
+const ownedSlugPattern =
+  /^e2e-category-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 if (
-  !categoryId ||
-  !/^[a-z0-9]{20,30}$/.test(categoryId) ||
+  (!categoryId || (categoryId !== '-' && !/^[a-z0-9]{20,30}$/.test(categoryId))) ||
   !originalSlug ||
-  !/^e2e-category-[a-f0-9-]+$/.test(originalSlug) ||
+  !ownedSlugPattern.test(originalSlug) ||
   !updatedSlug ||
   updatedSlug !== `${originalSlug}-updated`
 ) {
@@ -25,16 +26,19 @@ async function main() {
   });
 
   try {
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId },
-      select: { slug: true, _count: { select: { products: true } } },
+    const category = await prisma.category.findFirst({
+      where:
+        categoryId === '-'
+          ? { slug: { in: [originalSlug, updatedSlug] } }
+          : { id: categoryId },
+      select: { id: true, slug: true, _count: { select: { products: true } } },
     });
     if (
       category &&
       category._count.products === 0 &&
       (category.slug === originalSlug || category.slug === updatedSlug)
     ) {
-      await prisma.category.delete({ where: { id: categoryId } });
+      await prisma.category.delete({ where: { id: category.id } });
     }
   } finally {
     await prisma.$disconnect();
