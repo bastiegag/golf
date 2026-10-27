@@ -15,6 +15,7 @@ import {
   createOrderNumber,
   decimalPriceToCents,
 } from './order-utils';
+import { activeProductWhere } from '@/features/products/queries/availability';
 
 export type CreateOrderInput = {
   idempotencyKey: string;
@@ -92,10 +93,9 @@ async function getPricedCart(cart: unknown) {
   }
 
   const products = await prisma.product.findMany({
-    where: {
+    where: activeProductWhere({
       id: { in: cartResult.data.map((item) => item.productId) },
-      isActive: true,
-    },
+    }),
   });
 
   if (products.length !== cartResult.data.length) {
@@ -208,10 +208,9 @@ export async function createOrder(
       }
 
       const products = await transaction.product.findMany({
-        where: {
+        where: activeProductWhere({
           id: { in: cartResult.data.map((item) => item.productId) },
-          isActive: true,
-        },
+        }),
       });
 
       if (products.length !== cartResult.data.length) {

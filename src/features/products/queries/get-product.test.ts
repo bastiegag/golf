@@ -38,8 +38,12 @@ describe('getActiveProductBySlug', () => {
       price: '68.00',
     });
     expect(findFirst).toHaveBeenCalledWith({
-      where: { slug: 'harbor-knit', isActive: true },
-      include: { category: true },
+      where: {
+        slug: 'harbor-knit',
+        isActive: true,
+        category: { isActive: true },
+      },
+      include: { category: { select: { name: true, slug: true } } },
     });
   });
 

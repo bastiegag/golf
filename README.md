@@ -1,6 +1,6 @@
 # Golf
 
-A portfolio-quality storefront foundation for learning modern full-stack Next.js. The current release focuses on a responsive storefront, server-rendered product catalogue, product categories, a persistent client-side shopping cart, simulated checkout with PostgreSQL orders, and protected product administration. It intentionally does not include real payments, category CRUD, or order administration.
+A portfolio-quality storefront foundation for learning modern full-stack Next.js. The current release focuses on a responsive storefront, server-rendered product catalogue, category administration, a persistent client-side shopping cart, simulated checkout with PostgreSQL orders, and protected product administration. It intentionally does not include real payments or order administration.
 
 ## Technology
 
@@ -20,7 +20,7 @@ The products route is a Server Component and stays dynamic so it reads the curre
 
 Administrators with an active `ADMIN` account can manage products at `/admin/products`, create products at `/admin/products/new`, and edit products at `/admin/products/[id]/edit`. The list includes active and inactive products with server-side search, status/category filters, and pagination. Product mutations use authenticated Server Actions, server-side Zod validation, unique slug handling, category relation checks, and Prisma Decimal prices. Activation/deactivation only changes storefront visibility; it never deletes products or changes historical orders. Order items retain their original name, slug, price, quantity, and totals when a product is edited.
 
-Product images currently accept local paths such as `/products/placeholder.svg`; external image hosts and uploads are intentionally unsupported. Categories are selected from existing database records and cannot be created from this interface. The validation and authorization behavior is covered by the unit/integration test suites; run `npm run lint`, `npm run typecheck`, `npm run test:unit`, `npm run build`, `npm run test:integration`, and `npm run test:e2e` for the full check. The remaining limitations are category/order administration, inventory, variants, uploads, and payment processing.
+Product images currently accept local paths such as `/products/placeholder.svg`; external image hosts and uploads are intentionally unsupported. Product forms select from existing categories; category creation and editing are handled in the category administration interface described below. The validation and authorization behavior is covered by the unit/integration test suites; run `npm run lint`, `npm run typecheck`, `npm run test:unit`, `npm run build`, `npm run test:integration`, and `npm run test:e2e` for the full check. The remaining limitations are order administration, inventory, variants, uploads, and payment processing.
 
 The product form uses one controlled typed state object, synchronized with the
 React 19 Server Action response, so values remain editable after validation
@@ -36,6 +36,31 @@ Integration tests run against the dedicated `golf_test` database selected by
 without touching seeded products. Playwright product tests use unique slugs
 and a server-side cleanup helper. Both test environments refuse to fall back
 to `DATABASE_URL`.
+
+## Category administration
+
+Active administrators can manage categories at `/admin/categories`, create
+categories at `/admin/categories/new`, and edit them at
+`/admin/categories/[id]/edit`. Category administration uses the same
+Server Action, Zod validation, controlled form, and authorization patterns as
+product administration. Categories show their complete product count,
+including inactive products, and link directly to the filtered product admin
+list. Categories cannot be permanently deleted.
+
+Deactivating a category hides its individually active products from the public
+catalogue, category filters, product detail pages, checkout quotes, and order
+creation. It does not change the products' individual `isActive` values or
+historical orders. Reactivating the category restores visibility for products
+that are still individually active; individually inactive products remain
+hidden. Product administration continues to show products assigned to
+inactive categories, labels those categories clearly, and permits existing
+assignments while preventing new assignments to inactive categories.
+
+The `Category.isActive` field was added through a versioned Prisma migration.
+Repeated seeding updates category names but preserves an administrator's
+active/inactive choice. Category integration tests use only `golf_test`, and
+category E2E cleanup validates the database through the centralized test
+environment helper before removing test-owned products and categories.
 
 ## Local development with Docker Compose
 

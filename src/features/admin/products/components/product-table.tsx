@@ -11,7 +11,7 @@ type AdminProduct = {
   imageUrl: string;
   isActive: boolean;
   updatedAt: Date;
-  category: { name: string };
+  category: { name: string; isActive: boolean };
 };
 
 export function ProductTable({ products }: { products: AdminProduct[] }) {
@@ -41,7 +41,10 @@ export function ProductTable({ products }: { products: AdminProduct[] }) {
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-4">{product.category.name}</td>
+              <td className="px-4 py-4">
+                {product.category.name}
+                {!product.category.isActive ? ' (inactive)' : ''}
+              </td>
               <td className="px-4 py-4">{formatPrice(product.price)}</td>
               <td className="px-4 py-4">
                 <span className={product.isActive ? 'text-green-800' : 'text-muted-foreground'}>

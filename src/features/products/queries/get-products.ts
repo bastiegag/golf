@@ -1,5 +1,6 @@
 import 'server-only';
 import { getPrismaClient } from '@/lib/db/prisma';
+import { activeProductWhere } from './availability';
 
 export function serializeProduct<
   T extends {
@@ -22,12 +23,11 @@ export async function getActiveProducts(categorySlug?: string) {
   }
 
   const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      ...(categorySlug ? { category: { slug: categorySlug } } : {}),
-    },
+    where: activeProductWhere(
+      categorySlug ? { category: { slug: categorySlug } } : {},
+    ),
     orderBy: { createdAt: 'desc' },
-    include: { category: true },
+    include: { category: { select: { name: true, slug: true } } },
   });
 
   return products.map(serializeProduct);
@@ -41,6 +41,7 @@ export async function getActiveCategories() {
   }
 
   return prisma.category.findMany({
+    where: { isActive: true },
     orderBy: { name: 'asc' },
   });
 }

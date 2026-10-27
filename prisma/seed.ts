@@ -50,7 +50,7 @@ async function seedProducts() {
       await prisma.category.upsert({
         where: { slug: category.slug },
         update: { name: category.name },
-        create: category,
+        create: { ...category, isActive: true },
       });
     }
 

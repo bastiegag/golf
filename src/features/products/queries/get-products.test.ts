@@ -30,9 +30,9 @@ describe('product catalogue queries', () => {
 
     await expect(getActiveProducts()).resolves.toEqual([]);
     expect(findManyProducts).toHaveBeenCalledWith({
-      where: { isActive: true },
+      where: { isActive: true, category: { isActive: true } },
       orderBy: { createdAt: 'desc' },
-      include: { category: true },
+      include: { category: { select: { name: true, slug: true } } },
     });
   });
 
@@ -44,10 +44,10 @@ describe('product catalogue queries', () => {
     expect(findManyProducts).toHaveBeenCalledWith({
       where: {
         isActive: true,
-        category: { slug: 'clothing' },
+        category: { slug: 'clothing', isActive: true },
       },
       orderBy: { createdAt: 'desc' },
-      include: { category: true },
+      include: { category: { select: { name: true, slug: true } } },
     });
   });
 
@@ -58,10 +58,10 @@ describe('product catalogue queries', () => {
     expect(findManyProducts).toHaveBeenCalledWith({
       where: {
         isActive: true,
-        category: { slug: 'unknown' },
+        category: { slug: 'unknown', isActive: true },
       },
       orderBy: { createdAt: 'desc' },
-      include: { category: true },
+      include: { category: { select: { name: true, slug: true } } },
     });
   });
 
@@ -74,6 +74,7 @@ describe('product catalogue queries', () => {
 
     await expect(getActiveCategories()).resolves.toEqual(categories);
     expect(findManyCategories).toHaveBeenCalledWith({
+      where: { isActive: true },
       orderBy: { name: 'asc' },
     });
   });

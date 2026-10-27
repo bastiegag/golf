@@ -11,7 +11,7 @@ export async function getAdminCategories() {
 
   return prisma.category.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, slug: true },
+    select: { id: true, name: true, slug: true, isActive: true },
   });
 }
 

@@ -79,7 +79,7 @@ describe('product administration PostgreSQL integration', () => {
     expect(await getActiveProductBySlug(updated.slug)).toMatchObject({
       id: product.id,
       name: 'Updated Integration Product',
-      category: { id: accessoriesCategoryId },
+      category: { name: 'Accessories', slug: 'accessories' },
     });
     expect(
       (await getActiveProducts()).some((item) => item.id === product.id),

@@ -6,7 +6,7 @@ import type { ProductActionState, ProductFormValues } from '../actions';
 import { slugifyProductName } from '../schemas';
 import { SubmitButton } from './submit-button';
 
-type Category = { id: string; name: string };
+type Category = { id: string; name: string; isActive?: boolean };
 
 type ProductFormProps = {
   categories: Category[];
@@ -96,8 +96,15 @@ export function ProductForm({
           >
             <option value="">Select a category</option>
             {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
+              <option
+                key={category.id}
+                value={category.id}
+                disabled={
+                  category.isActive === false &&
+                  category.id !== displayedValues.categoryId
+                }
+              >
+                {category.name}{category.isActive === false ? ' (inactive)' : ''}
               </option>
             ))}
           </select>

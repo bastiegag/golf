@@ -62,7 +62,11 @@ describe('createOrder', () => {
 
     expect(result.totalCents).toBe(13798);
     expect(findProducts).toHaveBeenCalledWith({
-      where: { id: { in: ['product-1'] }, isActive: true },
+      where: {
+        id: { in: ['product-1'] },
+        isActive: true,
+        category: { isActive: true },
+      },
     });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({

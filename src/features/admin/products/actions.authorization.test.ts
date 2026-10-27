@@ -65,9 +65,15 @@ describe('product action authorization', () => {
     const product = {
       id: 'product-1',
       slug: 'old-product',
+      categoryId: 'category-1',
     };
     const prisma = {
-      category: { findUnique: vi.fn().mockResolvedValue({ id: 'category-1' }) },
+      category: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'category-1',
+          isActive: true,
+        }),
+      },
       product: {
         create: vi.fn().mockResolvedValue(product),
         findUnique: vi.fn().mockResolvedValue(product),

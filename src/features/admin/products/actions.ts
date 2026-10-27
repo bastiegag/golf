@@ -90,9 +90,9 @@ export async function createProductAction(
   try {
     const category = await prisma.category.findUnique({
       where: { id: result.data.categoryId },
-      select: { id: true },
+      select: { id: true, isActive: true },
     });
-    if (!category) {
+    if (!category || !category.isActive) {
       return {
         message: 'Review the highlighted fields.',
         fieldErrors: { categoryId: 'Select an existing category.' },
@@ -144,15 +144,21 @@ export async function updateProductAction(
   let originalSlug: string | null = null;
   try {
     const [product, category] = await Promise.all([
-      prisma.product.findUnique({ where: { id: validId.data }, select: { id: true, slug: true } }),
+      prisma.product.findUnique({
+        where: { id: validId.data },
+        select: { id: true, slug: true, categoryId: true },
+      }),
       prisma.category.findUnique({
         where: { id: result.data.categoryId },
-        select: { id: true },
+        select: { id: true, isActive: true },
       }),
     ]);
     if (!product) return { message: 'Product not found.' };
     originalSlug = product.slug;
-    if (!category) {
+    if (
+      !category ||
+      (!category.isActive && category.id !== product.categoryId)
+    ) {
       return {
         message: 'Review the highlighted fields.',
         fieldErrors: { categoryId: 'Select an existing category.' },
