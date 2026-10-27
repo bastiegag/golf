@@ -18,4 +18,19 @@ describe('order filters', () => {
       to: '2026-10-01',
     });
   });
+
+  it('accepts leap days only in leap years and rejects impossible dates', () => {
+    expect(parseOrderFilters({ from: '2024-02-29' }).from).toBe('2024-02-29');
+    expect(parseOrderFilters({ from: '2025-02-29' }).from).toBeUndefined();
+    expect(parseOrderFilters({ from: '2026-02-30' }).from).toBeUndefined();
+    expect(parseOrderFilters({ from: '2026-13-01' }).from).toBeUndefined();
+    expect(parseOrderFilters({ from: '2026-00-10' }).from).toBeUndefined();
+  });
+
+  it('keeps UTC calendar boundaries independent of the local timezone', () => {
+    expect(parseOrderFilters({ from: '2026-10-26', to: '2026-10-26' })).toMatchObject({
+      from: '2026-10-26',
+      to: '2026-10-26',
+    });
+  });
 });

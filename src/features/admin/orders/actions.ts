@@ -4,8 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAdmin } from '@/features/auth/authorization';
 import { getPrismaClient } from '@/lib/db/prisma';
-import { getOrderTransitionError } from './transitions';
 import { orderStatusSchema, type OrderActionState } from './schemas';
+import { updateOrderFulfillmentStatus } from './service';
 
 const orderIdSchema = z.string().trim().min(1);
 
@@ -15,52 +15,32 @@ export async function updateOrderStatusAction(
 ): Promise<OrderActionState> {
   const administrator = await requireAdmin();
   const orderId = orderIdSchema.safeParse(formData.get('orderId'));
+  const expectedStatus = orderStatusSchema.safeParse(
+    formData.get('expectedStatus'),
+  );
   const nextStatus = orderStatusSchema.safeParse(formData.get('status'));
-  if (!orderId.success || !nextStatus.success) {
+  if (!orderId.success || !expectedStatus.success || !nextStatus.success) {
     return { message: 'Choose a valid order status.' };
   }
 
   const prisma = getPrismaClient();
   if (!prisma) return { message: 'The database is unavailable. Try again.' };
 
-  const result = await prisma.$transaction(async (transaction) => {
-      const current = await transaction.order.findUnique({
-        where: { id: orderId.data },
-        select: { status: true, orderNumber: true },
-      });
-      if (!current) return { kind: 'missing' as const };
-
-      const transitionError = getOrderTransitionError(
-        current.status,
-        nextStatus.data,
-      );
-      if (transitionError) {
-        return { kind: 'invalid' as const, message: transitionError };
-      }
-
-      const updated = await transaction.order.updateMany({
-        where: { id: orderId.data, status: current.status },
-        data: { status: nextStatus.data },
-      });
-      if (updated.count !== 1) return { kind: 'conflict' as const };
-
-      await transaction.orderStatusHistory.create({
-        data: {
-          orderId: orderId.data,
-          previousStatus: current.status,
-          newStatus: nextStatus.data,
-          administratorId: administrator.id,
-        },
-      });
-      return { kind: 'updated' as const, orderNumber: current.orderNumber };
-    });
+  const result = await prisma.$transaction((transaction) =>
+    updateOrderFulfillmentStatus(transaction, {
+      orderId: orderId.data,
+      expectedStatus: expectedStatus.data,
+      nextStatus: nextStatus.data,
+      administratorId: administrator.id,
+    }),
+  );
 
   if (result.kind === 'missing') return { message: 'Order not found.' };
   if (result.kind === 'invalid' || result.kind === 'conflict') {
     return {
       message:
         result.kind === 'conflict'
-          ? 'This order changed in another session. Refresh and try again.'
+          ? 'This order changed in another session. Refresh the page before updating its status.'
           : result.message,
     };
   }

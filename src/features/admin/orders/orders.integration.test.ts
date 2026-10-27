@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { createOrder } from '@/features/checkout/order-service';
 import { getAdminOrderById, getAdminOrders } from './queries';
 import { parseOrderFilters } from './schemas';
+import { updateOrderFulfillmentStatus } from './service';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -17,6 +18,7 @@ const prisma = new PrismaClient({
 
 describe('order administration PostgreSQL integration', () => {
   let categoryId: string;
+  let administratorId: string;
   const productIds: string[] = [];
   const orderIds: string[] = [];
 
@@ -27,6 +29,12 @@ describe('order administration PostgreSQL integration', () => {
     });
     if (!category) throw new Error('The seeded clothing category is required.');
     categoryId = category.id;
+    const administrator = await prisma.user.findFirst({
+      where: { role: 'ADMIN', isActive: true },
+      select: { id: true },
+    });
+    if (!administrator) throw new Error('An active seeded administrator is required.');
+    administratorId = administrator.id;
   });
 
   afterAll(async () => {
@@ -101,36 +109,93 @@ describe('order administration PostgreSQL integration', () => {
 
   it('persists valid status history and rejects stale conditional updates', async () => {
     const order = await createTestOrder();
-    const first = await prisma.$transaction(async (transaction) => {
-      const updated = await transaction.order.updateMany({
-        where: { id: order.id, status: OrderStatus.PENDING },
-        data: { status: OrderStatus.PROCESSING },
-      });
-      if (updated.count !== 1) return false;
-      await transaction.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          previousStatus: OrderStatus.PENDING,
-          newStatus: OrderStatus.PROCESSING,
-        },
-      });
-      return true;
-    });
-    expect(first).toBe(true);
+    const first = await prisma.$transaction((transaction) =>
+      updateOrderFulfillmentStatus(transaction, {
+        orderId: order.id,
+        expectedStatus: OrderStatus.PENDING,
+        nextStatus: OrderStatus.PROCESSING,
+        administratorId,
+      }),
+    );
+    expect(first.kind).toBe('updated');
 
-    const stale = await prisma.order.updateMany({
-      where: { id: order.id, status: OrderStatus.PENDING },
-      data: { status: OrderStatus.CANCELLED },
+    const stale = await prisma.$transaction((transaction) =>
+      updateOrderFulfillmentStatus(transaction, {
+        orderId: order.id,
+        expectedStatus: OrderStatus.PENDING,
+        nextStatus: OrderStatus.CANCELLED,
+        administratorId,
+      }),
+    );
+    expect(stale).toEqual({ kind: 'conflict' });
+
+    const invalid = await prisma.$transaction((transaction) =>
+      updateOrderFulfillmentStatus(transaction, {
+        orderId: order.id,
+        expectedStatus: OrderStatus.PROCESSING,
+        nextStatus: OrderStatus.DELIVERED,
+        administratorId,
+      }),
+    );
+    expect(invalid.kind).toBe('invalid');
+  });
+
+  it('completes fulfillment transitions and leaves terminal orders unchanged', async () => {
+    const order = await createTestOrder();
+    for (const [expectedStatus, nextStatus] of [
+      [OrderStatus.PENDING, OrderStatus.PROCESSING],
+      [OrderStatus.PROCESSING, OrderStatus.SHIPPED],
+      [OrderStatus.SHIPPED, OrderStatus.DELIVERED],
+    ] as const) {
+      const result = await prisma.$transaction((transaction) =>
+        updateOrderFulfillmentStatus(transaction, {
+          orderId: order.id,
+          expectedStatus,
+          nextStatus,
+          administratorId,
+        }),
+      );
+      expect(result.kind).toBe('updated');
+    }
+
+    const terminal = await prisma.$transaction((transaction) =>
+      updateOrderFulfillmentStatus(transaction, {
+        orderId: order.id,
+        expectedStatus: OrderStatus.DELIVERED,
+        nextStatus: OrderStatus.CANCELLED,
+        administratorId,
+      }),
+    );
+    expect(terminal.kind).toBe('invalid');
+    const historyCount = await prisma.orderStatusHistory.count({
+      where: { orderId: order.id },
     });
-    expect(stale.count).toBe(0);
+    expect(historyCount).toBe(3);
 
     const detail = await getAdminOrderById(order.id);
-    expect(detail?.status).toBe(OrderStatus.PROCESSING);
-    expect(detail?.statusHistory).toHaveLength(1);
-    expect(detail?.statusHistory[0]).toMatchObject({
-      previousStatus: OrderStatus.PENDING,
-      newStatus: OrderStatus.PROCESSING,
+    expect(detail?.status).toBe(OrderStatus.DELIVERED);
+    expect(detail?.statusHistory).toHaveLength(3);
+  });
+
+  it('rolls back the status when history creation fails', async () => {
+    const order = await createTestOrder();
+    await expect(
+      prisma.$transaction((transaction) =>
+        updateOrderFulfillmentStatus(transaction, {
+          orderId: order.id,
+          expectedStatus: OrderStatus.PENDING,
+          nextStatus: OrderStatus.PROCESSING,
+          administratorId: 'missing-administrator',
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'P2003' });
+
+    const persisted = await prisma.order.findUniqueOrThrow({
+      where: { id: order.id },
+      include: { statusHistory: true },
     });
+    expect(persisted.status).toBe(OrderStatus.PENDING);
+    expect(persisted.statusHistory).toHaveLength(0);
   });
 
   it('searches by customer data, filters by status, and paginates safely', async () => {

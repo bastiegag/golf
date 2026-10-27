@@ -13,7 +13,21 @@ import type { OrderStatus } from '@/generated/prisma/client';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button
+      type="submit"
+      disabled={pending}
+      onClick={(event) => {
+        if (
+          event.currentTarget.form?.elements.namedItem('status') instanceof
+            HTMLSelectElement &&
+          (event.currentTarget.form?.elements.namedItem('status') as HTMLSelectElement)
+            .value === 'CANCELLED' &&
+          !window.confirm('Cancel this order? This action cannot be undone.')
+        ) {
+          event.preventDefault();
+        }
+      }}
+    >
       {pending ? 'Saving…' : 'Update status'}
     </Button>
   );
@@ -47,17 +61,9 @@ export function OrderStatusForm({
         <form
           action={formAction}
           className="mt-5 flex flex-wrap items-end gap-3"
-          onSubmit={(event) => {
-            const value = new FormData(event.currentTarget).get('status');
-            if (
-              value === 'CANCELLED' &&
-              !window.confirm('Cancel this order? This action cannot be undone.')
-            ) {
-              event.preventDefault();
-            }
-          }}
         >
           <input type="hidden" name="orderId" value={orderId} />
+          <input type="hidden" name="expectedStatus" value={status} />
           <div>
             <label htmlFor="next-status" className="mb-2 block text-sm font-medium">
               Change to

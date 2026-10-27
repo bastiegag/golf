@@ -15,6 +15,7 @@ import { updateOrderStatusAction } from './actions';
 function statusForm() {
   const formData = new FormData();
   formData.set('orderId', 'order-1');
+  formData.set('expectedStatus', 'PENDING');
   formData.set('status', 'PROCESSING');
   return formData;
 }
@@ -79,7 +80,7 @@ describe('order status action authorization', () => {
     });
 
     await expect(updateOrderStatusAction({}, statusForm())).resolves.toEqual({
-      message: 'This order changed in another session. Refresh and try again.',
+      message: 'This order changed in another session. Refresh the page before updating its status.',
     });
     expect(transaction.orderStatusHistory.create).not.toHaveBeenCalled();
   });
