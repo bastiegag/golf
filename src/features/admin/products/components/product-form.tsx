@@ -2,19 +2,11 @@
 
 import Image from 'next/image';
 import { useActionState, useEffect, useState } from 'react';
-import type { ProductActionState } from '../actions';
+import type { ProductActionState, ProductFormValues } from '../actions';
+import { slugifyProductName } from '../schemas';
 import { SubmitButton } from './submit-button';
 
 type Category = { id: string; name: string };
-type ProductFormValues = {
-  name: string;
-  slug: string;
-  description: string;
-  price: string;
-  imageUrl: string;
-  categoryId: string;
-  isActive: boolean;
-};
 
 type ProductFormProps = {
   categories: Category[];
@@ -36,12 +28,27 @@ export function ProductForm({
     action,
     {},
   );
-  const [imageUrl, setImageUrl] = useState(initialValues.imageUrl);
-  const values = state.values ?? initialValues;
+  const [values, setValues] = useState<ProductFormValues>(initialValues);
+  const [slugTouched, setSlugTouched] = useState(
+    Boolean(initialValues.slug && initialValues.slug !== slugifyProductName(initialValues.name)),
+  );
+  const displayedValues = values;
 
   useEffect(() => {
-    if (state.values?.imageUrl !== undefined) setImageUrl(state.values.imageUrl);
-  }, [state.values?.imageUrl]);
+    if (state.values) setValues(state.values);
+  }, [state.values]);
+
+  const updateValue = <K extends keyof ProductFormValues>(
+    field: K,
+    value: ProductFormValues[K],
+  ) => {
+    setValues((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleNameChange = (name: string) => {
+    const suggestedSlug = !slugTouched ? slugifyProductName(name) : displayedValues.slug;
+    setValues((current) => ({ ...current, name, slug: suggestedSlug }));
+  };
 
   const error = (field: string) => state.fieldErrors?.[field];
 
@@ -56,16 +63,17 @@ export function ProductForm({
         </p>
       ) : null}
       <div className="grid gap-6 sm:grid-cols-2">
-        <Field label="Name" name="name" value={values.name} error={error('name')} />
-        <Field label="Slug" name="slug" value={values.slug} error={error('slug')} />
+        <Field label="Name" name="name" value={displayedValues.name} error={error('name')} onChange={handleNameChange} />
+        <Field label="Slug" name="slug" value={displayedValues.slug} error={error('slug')} onChange={(slug) => { setSlugTouched(true); updateValue('slug', slug); }} />
         <Field
           label="Price"
           name="price"
           type="text"
           inputMode="decimal"
-          value={values.price}
+          value={displayedValues.price}
           error={error('price')}
           hint="Use dollars and up to two decimal places."
+          onChange={(price) => updateValue('price', price)}
         />
         <div>
           <label htmlFor="categoryId" className="mb-2 block text-sm font-medium">
@@ -74,7 +82,8 @@ export function ProductForm({
           <select
             id="categoryId"
             name="categoryId"
-            defaultValue={values.categoryId}
+            value={displayedValues.categoryId}
+            onChange={(event) => updateValue('categoryId', event.target.value)}
             className="w-full rounded-sm border border-border bg-background px-3 py-3"
             aria-invalid={Boolean(error('categoryId'))}
             aria-describedby={error('categoryId') ? 'categoryId-error' : undefined}
@@ -100,7 +109,8 @@ export function ProductForm({
         <textarea
           id="description"
           name="description"
-          defaultValue={values.description}
+          value={displayedValues.description}
+          onChange={(event) => updateValue('description', event.target.value)}
           rows={5}
           className="w-full rounded-sm border border-border bg-background px-3 py-3"
           aria-invalid={Boolean(error('description'))}
@@ -116,8 +126,8 @@ export function ProductForm({
         <input
           id="imageUrl"
           name="imageUrl"
-          value={imageUrl}
-          onChange={(event) => setImageUrl(event.target.value)}
+          value={displayedValues.imageUrl}
+          onChange={(event) => updateValue('imageUrl', event.target.value)}
           className="w-full rounded-sm border border-border bg-background px-3 py-3"
           aria-invalid={Boolean(error('imageUrl'))}
           aria-describedby="imageUrl-hint"
@@ -128,9 +138,9 @@ export function ProductForm({
         {error('imageUrl') ? (
           <p className="mt-2 text-sm text-red-800">{error('imageUrl')}</p>
         ) : null}
-        {imageUrl.startsWith('/') && !imageUrl.startsWith('//') ? (
+        {displayedValues.imageUrl.startsWith('/') && !displayedValues.imageUrl.startsWith('//') ? (
           <div className="relative mt-4 h-32 w-48 overflow-hidden bg-muted">
-            <Image src={imageUrl} alt="Product preview" fill className="object-cover" />
+            <Image src={displayedValues.imageUrl} alt="Product preview" fill className="object-cover" />
           </div>
         ) : null}
       </div>
@@ -138,7 +148,8 @@ export function ProductForm({
         <input
           type="checkbox"
           name="isActive"
-          defaultChecked={initialValues.isActive}
+          checked={displayedValues.isActive}
+          onChange={(event) => updateValue('isActive', event.target.checked)}
           className="size-4 accent-[var(--accent)]"
         />
         Active in the public storefront
@@ -161,6 +172,7 @@ function Field({
   type = 'text',
   inputMode,
   hint,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -169,6 +181,7 @@ function Field({
   type?: 'text';
   inputMode?: 'decimal';
   hint?: string;
+  onChange?: (value: string) => void;
 }) {
   const errorId = `${name}-error`;
   return (
@@ -181,7 +194,8 @@ function Field({
         name={name}
         type={type}
         inputMode={inputMode}
-        defaultValue={value}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
         className="w-full rounded-sm border border-border bg-background px-3 py-3"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? errorId : undefined}

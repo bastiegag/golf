@@ -1,25 +1,39 @@
 'use server';
 
 import { Prisma } from '@/generated/prisma/client';
-import type { ZodSafeParseError } from 'zod';
+import { z, type ZodSafeParseError } from 'zod';
 import { requireAdmin } from '@/features/auth/authorization';
 import { getPrismaClient } from '@/lib/db/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { productInputSchema } from './schemas';
 
+export type ProductFormValues = {
+  name: string;
+  slug: string;
+  description: string;
+  price: string;
+  imageUrl: string;
+  categoryId: string;
+  isActive: boolean;
+};
+
 export type ProductActionState = {
   message?: string;
   fieldErrors?: Partial<Record<string, string>>;
-  values?: Record<string, string>;
+  values?: ProductFormValues;
 };
 
 function formValues(formData: FormData) {
-  return Object.fromEntries(
-    ['name', 'slug', 'description', 'price', 'imageUrl', 'categoryId'].map(
-      (field) => [field, String(formData.get(field) ?? '')],
-    ),
-  );
+  return {
+    name: String(formData.get('name') ?? ''),
+    slug: String(formData.get('slug') ?? ''),
+    description: String(formData.get('description') ?? ''),
+    price: String(formData.get('price') ?? ''),
+    imageUrl: String(formData.get('imageUrl') ?? ''),
+    categoryId: String(formData.get('categoryId') ?? ''),
+    isActive: formData.get('isActive') === 'on',
+  };
 }
 
 function parseInput(formData: FormData) {
@@ -50,6 +64,12 @@ function validationState(formData: FormData, error: ZodSafeParseError<unknown>) 
 function isKnownRequestError(error: unknown, code: string) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === code;
 }
+
+const productIdSchema = z.string().trim().min(1);
+const statusInputSchema = z.object({
+  id: productIdSchema,
+  isActive: z.enum(['true', 'false']).transform((value) => value === 'true'),
+});
 
 function revalidateProductPaths() {
   revalidatePath('/products');
@@ -119,15 +139,19 @@ export async function updateProductAction(
   const prisma = getPrismaClient();
   if (!prisma) return { message: 'The database is unavailable. Try again.' };
 
+  let originalSlug: string | null = null;
   try {
+    const validId = productIdSchema.safeParse(id);
+    if (!validId.success) return { message: 'Product not found.' };
     const [product, category] = await Promise.all([
-      prisma.product.findUnique({ where: { id }, select: { id: true } }),
+      prisma.product.findUnique({ where: { id: validId.data }, select: { id: true, slug: true } }),
       prisma.category.findUnique({
         where: { id: result.data.categoryId },
         select: { id: true },
       }),
     ]);
     if (!product) return { message: 'Product not found.' };
+    originalSlug = product.slug;
     if (!category) {
       return {
         message: 'Review the highlighted fields.',
@@ -137,7 +161,7 @@ export async function updateProductAction(
     }
 
     await prisma.product.update({
-      where: { id },
+      where: { id: validId.data },
       data: { ...result.data, price: new Prisma.Decimal(result.data.price) },
     });
   } catch (error) {
@@ -158,22 +182,34 @@ export async function updateProductAction(
   }
 
   revalidateProductPaths();
+  if (originalSlug) revalidatePath(`/products/${originalSlug}`);
   revalidatePath(`/products/${result.data.slug}`);
   redirect('/admin/products?success=updated');
 }
 
 export async function toggleProductStatusAction(formData: FormData) {
   await requireAdmin();
-  const id = String(formData.get('id') ?? '');
-  const isActive = formData.get('isActive') === 'true';
-  if (!id) return;
+  const result = statusInputSchema.safeParse({
+    id: formData.get('id'),
+    isActive: formData.get('isActive'),
+  });
+  if (!result.success) {
+    return;
+  }
 
   const prisma = getPrismaClient();
   if (!prisma) return;
 
-  await prisma.product.update({
-    where: { id },
-    data: { isActive },
-  });
+  try {
+    await prisma.product.update({
+      where: { id: result.data.id },
+      data: { isActive: result.data.isActive },
+    });
+  } catch (error) {
+    if (isKnownRequestError(error, 'P2025')) {
+      return;
+    }
+    throw error;
+  }
   revalidateProductPaths();
 }

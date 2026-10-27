@@ -22,6 +22,21 @@ Administrators with an active `ADMIN` account can manage products at `/admin/pro
 
 Product images currently accept local paths such as `/products/placeholder.svg`; external image hosts and uploads are intentionally unsupported. Categories are selected from existing database records and cannot be created from this interface. The validation and authorization behavior is covered by the unit/integration test suites; run `npm run lint`, `npm run typecheck`, `npm run test:unit`, `npm run build`, `npm run test:integration`, and `npm run test:e2e` for the full check. The remaining limitations are category/order administration, inventory, variants, uploads, and payment processing.
 
+The product form uses one controlled typed state object, synchronized with the
+React 19 Server Action response, so values remain editable after validation
+errors. New product names suggest a normalized slug until the administrator
+edits the slug; edit forms preserve existing slugs. The admin list uses
+server-side offset pagination with a ten-product page size. Invalid pages are
+normalized after the filtered count is calculated, and navigation preserves
+search, status, and category filters. Product updates invalidate both the
+original and new public detail URLs, as well as the catalogue and admin list.
+
+Integration tests run against the dedicated `golf_test` database selected by
+`E2E_DATABASE_URL`; they use test-owned product fixtures and clean them up
+without touching seeded products. Playwright product tests use unique slugs
+and a server-side cleanup helper. Both test environments refuse to fall back
+to `DATABASE_URL`.
+
 ## Local development with Docker Compose
 
 Prerequisites: Node.js 22.12 or newer, npm, and Docker Desktop (or Docker Engine with

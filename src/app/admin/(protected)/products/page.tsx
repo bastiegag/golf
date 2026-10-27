@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getAdminCategories, getAdminProducts, ADMIN_PRODUCT_PAGE_SIZE } from '@/features/admin/products/queries';
+import { getAdminCategories, getAdminProducts } from '@/features/admin/products/queries';
 import { parseProductFilters } from '@/features/admin/products/schemas';
 import { ProductTable } from '@/features/admin/products/components/product-table';
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,8 @@ export default async function AdminProductsPage({ searchParams }: Props) {
     getAdminProducts(filters),
     getAdminCategories(),
   ]);
-  const pageCount = Math.max(1, Math.ceil(result.total / ADMIN_PRODUCT_PAGE_SIZE));
-  const currentPage = Math.min(filters.page, pageCount);
+  const pageCount = result.pageCount;
+  const currentPage = result.page;
   const baseParams = {
     query: filters.query,
     status: filters.status === 'all' ? '' : filters.status,

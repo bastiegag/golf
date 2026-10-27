@@ -18,7 +18,7 @@ export async function getAdminCategories() {
 export async function getAdminProducts(filters: ProductFilter) {
   const prisma = getPrismaClient();
   if (!prisma) {
-    return { products: [], total: 0 };
+    return { products: [], total: 0, page: 1, pageCount: 1 };
   }
 
   const where = {
@@ -35,16 +35,16 @@ export async function getAdminProducts(filters: ProductFilter) {
     ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
   };
 
-  const [products, total] = await prisma.$transaction([
-    prisma.product.findMany({
+  const total = await prisma.product.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / ADMIN_PRODUCT_PAGE_SIZE));
+  const page = Math.min(filters.page, pageCount);
+  const products = await prisma.product.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
-      skip: (filters.page - 1) * ADMIN_PRODUCT_PAGE_SIZE,
+      skip: (page - 1) * ADMIN_PRODUCT_PAGE_SIZE,
       take: ADMIN_PRODUCT_PAGE_SIZE,
       include: { category: true },
-    }),
-    prisma.product.count({ where }),
-  ]);
+    });
 
   return {
     products: products.map((product) => ({
@@ -52,6 +52,8 @@ export async function getAdminProducts(filters: ProductFilter) {
       price: product.price.toString(),
     })),
     total,
+    page,
+    pageCount,
   };
 }
 

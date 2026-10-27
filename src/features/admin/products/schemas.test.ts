@@ -60,5 +60,13 @@ describe('product administration schemas', () => {
       query: 'clubs',
       categoryId: '',
     });
+
   });
+
+  it.each(['0', '-2', 'not-a-number'])(
+    'falls back to page 1 for invalid page %s',
+    (page) => {
+      expect(parseProductFilters({ page }).page).toBe(1);
+    },
+  );
 });
