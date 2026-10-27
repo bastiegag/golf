@@ -80,9 +80,21 @@ Orders use the fulfillment statuses `PENDING`, `PROCESSING`, `SHIPPED`,
 Delivered and cancelled orders are terminal. Each successful status change is
 written to `OrderStatusHistory` in the same transaction as the order update.
 The update uses a conditional status write, so a stale administrator receives
-a conflict message instead of creating misleading history. Existing legacy
-`CONFIRMED` rows are migrated to `PENDING`; checkout remains simulated and
-new orders start as `PENDING`.
+a conflict message instead of creating misleading history. The form also
+submits an untrusted `expectedStatus` value representing the status displayed
+when the page was loaded; the server compares it with PostgreSQL before
+validating the transition and retains the conditional write for races after
+that check. Stale forms must be refreshed and are never silently reinterpreted.
+Existing legacy `CONFIRMED` rows are migrated to `PENDING`; checkout remains
+simulated and new orders start as `PENDING`.
+
+Order date filters accept strict `YYYY-MM-DD` calendar dates, use UTC
+half-open day boundaries, and safely normalize reversed ranges. Invalid dates
+such as February 30 are ignored rather than sent to Prisma. Playwright order
+tests cover fulfillment, cancellation confirmation and dismissal, stale
+administrator forms, access control, filtering, and unknown orders. Fixtures
+use unique UUID markers and the validated `E2E_DATABASE_URL`; cleanup removes
+only the matching test order and product, even when an ID was not captured.
 
 Order detail pages render persisted customer, total, and `OrderItem` snapshot
 values. Product edits, repricing, deactivation, and category changes do not
