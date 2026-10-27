@@ -136,13 +136,13 @@ export async function updateProductAction(
   const result = parseInput(formData);
   if (!result.success) return validationState(formData, result);
 
+  const validId = productIdSchema.safeParse(id);
+  if (!validId.success) return { message: 'Product not found.' };
   const prisma = getPrismaClient();
   if (!prisma) return { message: 'The database is unavailable. Try again.' };
 
   let originalSlug: string | null = null;
   try {
-    const validId = productIdSchema.safeParse(id);
-    if (!validId.success) return { message: 'Product not found.' };
     const [product, category] = await Promise.all([
       prisma.product.findUnique({ where: { id: validId.data }, select: { id: true, slug: true } }),
       prisma.category.findUnique({

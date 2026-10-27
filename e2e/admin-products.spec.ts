@@ -11,10 +11,23 @@ if (!adminEmail || !adminPassword || !process.env.E2E_DATABASE_URL) {
   );
 }
 
-async function removeProduct(slug: string) {
+async function removeProduct(
+  productId: string | undefined,
+  originalSlug: string,
+  updatedSlug: string,
+) {
+  if (!productId) return;
   execFileSync(
     process.platform === 'win32' ? 'npm.cmd' : 'npm',
-    ['exec', '--', 'tsx', 'scripts/cleanup-e2e-product.ts', slug],
+    [
+      'exec',
+      '--',
+      'tsx',
+      'scripts/cleanup-e2e-product.ts',
+      productId,
+      originalSlug,
+      updatedSlug,
+    ],
     { env: process.env, stdio: 'inherit' },
   );
 }
@@ -23,6 +36,7 @@ test.describe('administrator product management', () => {
   test('creates, edits, hides, and reactivates a product', async ({ page }) => {
     const slug = `e2e-product-${randomUUID()}`;
     const updatedSlug = `${slug}-updated`;
+    let productId: string | undefined;
 
     try {
       await page.goto('/admin/login');
@@ -40,15 +54,17 @@ test.describe('administrator product management', () => {
       await page.getByRole('button', { name: 'Create product' }).click();
 
       await expect(page).toHaveURL(/\/admin\/products\?success=created/);
-      await expect(page.getByText('E2E Product')).toBeVisible();
-
-      await page.goto(`/products/${slug}`);
-      await expect(page.getByRole('heading', { name: 'E2E Product' })).toBeVisible();
+      await expect(page.getByText('E2E Product', { exact: true })).toBeVisible();
       const editHref = await page
         .getByRole('row')
         .filter({ hasText: 'E2E Product' })
         .getByRole('link', { name: 'Edit' })
         .getAttribute('href');
+      productId = editHref?.split('/')[3];
+
+      await page.goto(`/products/${slug}`);
+      await expect(page.getByRole('heading', { name: 'E2E Product' })).toBeVisible();
+      await page.goto('/admin/products');
       await page.goto(editHref!);
       await page.getByLabel('Name').fill('Updated E2E Product');
       await page.getByLabel('Slug').fill(updatedSlug);
@@ -63,17 +79,22 @@ test.describe('administrator product management', () => {
 
       await page.goto('/admin/products');
       const row = page.getByRole('row').filter({ hasText: 'Updated E2E Product' });
+      page.once('dialog', (dialog) => dialog.accept());
       await row.getByRole('button', { name: 'Deactivate' }).click();
       await expect(row.getByRole('button', { name: 'Activate' })).toBeVisible();
       await page.goto(`/products/${updatedSlug}`);
       await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
 
       await page.goto('/admin/products');
-      await page.getByRole('row').filter({ hasText: 'Updated E2E Product' }).getByRole('button', { name: 'Activate' }).click();
+      const inactiveRow = page
+        .getByRole('row')
+        .filter({ hasText: 'Updated E2E Product' });
+      await inactiveRow.getByRole('button', { name: 'Activate' }).click();
+      await expect(inactiveRow.getByRole('button', { name: 'Deactivate' })).toBeVisible();
       await page.goto(`/products/${updatedSlug}`);
       await expect(page.getByRole('heading', { name: 'Updated E2E Product' })).toBeVisible();
     } finally {
-      await removeProduct(slug);
+      await removeProduct(productId, slug, updatedSlug);
     }
   });
 
@@ -87,11 +108,14 @@ test.describe('administrator product management', () => {
     await page.getByLabel('Email').fill(adminEmail!);
     await page.getByLabel('Password').fill(adminPassword!);
     await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/admin$/);
     await page.goto('/admin/products/new');
     await page.getByLabel('Name').fill('Validation Product');
     await page.getByRole('button', { name: 'Create product' }).click();
 
-    await expect(page.getByRole('alert')).toContainText('Review the highlighted fields.');
+    await expect(
+      page.locator('form p[role="alert"]'),
+    ).toContainText('Review the highlighted fields.');
     await expect(page.getByLabel('Name')).toHaveValue('Validation Product');
   });
 });

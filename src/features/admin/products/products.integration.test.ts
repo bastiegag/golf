@@ -4,6 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { getActiveProductBySlug } from '@/features/products/queries/get-product';
 import { getActiveProducts } from '@/features/products/queries/get-products';
+import { productInputSchema } from './schemas';
+import { createOrder } from '@/features/checkout/order-service';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -16,6 +18,7 @@ const prisma = new PrismaClient({
 
 describe('product administration PostgreSQL integration', () => {
   let categoryId: string;
+  let accessoriesCategoryId: string;
   const productIds: string[] = [];
   const orderIds: string[] = [];
 
@@ -26,6 +29,12 @@ describe('product administration PostgreSQL integration', () => {
     });
     if (!category) throw new Error('The seeded clothing category is required.');
     categoryId = category.id;
+    const accessories = await prisma.category.findUnique({
+      where: { slug: 'accessories' },
+      select: { id: true },
+    });
+    if (!accessories) throw new Error('The seeded accessories category is required.');
+    accessoriesCategoryId = accessories.id;
   });
 
   afterAll(async () => {
@@ -36,16 +45,17 @@ describe('product administration PostgreSQL integration', () => {
 
   it('creates, edits, and toggles a test-owned product', async () => {
     const slug = `integration-product-${randomUUID()}`;
+    const input = productInputSchema.parse({
+      name: 'Integration Product',
+      slug,
+      description: 'Created by the product administration integration suite.',
+      price: '12.50',
+      imageUrl: '/products/placeholder.svg',
+      categoryId,
+      isActive: false,
+    });
     const product = await prisma.product.create({
-      data: {
-        name: 'Integration Product',
-        slug,
-        description: 'Created by the product administration integration suite.',
-        price: '12.50',
-        imageUrl: '/products/placeholder.svg',
-        categoryId,
-        isActive: false,
-      },
+      data: { ...input, price: input.price },
     });
     productIds.push(product.id);
 
@@ -60,6 +70,7 @@ describe('product administration PostgreSQL integration', () => {
         description: 'Updated description.',
         price: '24.75',
         isActive: true,
+        categoryId: accessoriesCategoryId,
       },
     });
 
@@ -68,6 +79,7 @@ describe('product administration PostgreSQL integration', () => {
     expect(await getActiveProductBySlug(updated.slug)).toMatchObject({
       id: product.id,
       name: 'Updated Integration Product',
+      category: { id: accessoriesCategoryId },
     });
     expect(
       (await getActiveProducts()).some((item) => item.id === product.id),
@@ -78,6 +90,7 @@ describe('product administration PostgreSQL integration', () => {
       data: { isActive: false },
     });
     expect(await getActiveProductBySlug(updated.slug)).toBeNull();
+    expect(await prisma.product.findUnique({ where: { id: 'missing-product' } })).toBeNull();
   });
 
   it('rejects invalid categories and duplicate slugs', async () => {
@@ -119,5 +132,52 @@ describe('product administration PostgreSQL integration', () => {
         },
       }),
     ).rejects.toMatchObject({ code: 'P2003' });
+  });
+
+  it('preserves order snapshots when product details change', async () => {
+    const slug = `integration-snapshot-${randomUUID()}`;
+    const product = await prisma.product.create({
+      data: {
+        name: 'Original Snapshot Product',
+        slug,
+        description: 'Snapshot source.',
+        price: '17.25',
+        imageUrl: '/products/placeholder.svg',
+        categoryId,
+      },
+    });
+    productIds.push(product.id);
+
+    const order = await createOrder({
+      idempotencyKey: randomUUID(),
+      checkout: {
+        customerName: 'Product Snapshot Test',
+        customerEmail: 'snapshot@example.com',
+        shippingAddress: '1 Test Street',
+        shippingCity: 'Toronto',
+        shippingRegion: 'Ontario',
+        shippingPostalCode: 'M5V 2T6',
+        shippingCountry: 'Canada',
+      },
+      cart: [{ productId: product.id, quantity: 1 }],
+      acceptedTotalCents: 1725,
+    });
+    orderIds.push(
+      (await prisma.order.findUnique({ where: { orderNumber: order.orderNumber } }))!.id,
+    );
+
+    await prisma.product.update({
+      where: { id: product.id },
+      data: { name: 'Changed Product', price: '99.99' },
+    });
+
+    const item = await prisma.orderItem.findFirst({
+      where: { orderId: orderIds[orderIds.length - 1] },
+    });
+    expect(item).toMatchObject({
+      productNameSnapshot: 'Original Snapshot Product',
+      unitPriceCents: 1725,
+      lineTotalCents: 1725,
+    });
   });
 });

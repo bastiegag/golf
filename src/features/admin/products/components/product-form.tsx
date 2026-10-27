@@ -29,6 +29,7 @@ export function ProductForm({
     {},
   );
   const [values, setValues] = useState<ProductFormValues>(initialValues);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const [slugTouched, setSlugTouched] = useState(
     Boolean(initialValues.slug && initialValues.slug !== slugifyProductName(initialValues.name)),
   );
@@ -48,6 +49,11 @@ export function ProductForm({
   const handleNameChange = (name: string) => {
     const suggestedSlug = !slugTouched ? slugifyProductName(name) : displayedValues.slug;
     setValues((current) => ({ ...current, name, slug: suggestedSlug }));
+  };
+
+  const handleImageUrlChange = (imageUrl: string) => {
+    setPreviewFailed(false);
+    updateValue('imageUrl', imageUrl);
   };
 
   const error = (field: string) => state.fieldErrors?.[field];
@@ -114,9 +120,12 @@ export function ProductForm({
           rows={5}
           className="w-full rounded-sm border border-border bg-background px-3 py-3"
           aria-invalid={Boolean(error('description'))}
+          aria-describedby={error('description') ? 'description-error' : undefined}
         />
         {error('description') ? (
-          <p className="mt-2 text-sm text-red-800">{error('description')}</p>
+          <p id="description-error" className="mt-2 text-sm text-red-800">
+            {error('description')}
+          </p>
         ) : null}
       </div>
       <div>
@@ -127,20 +136,30 @@ export function ProductForm({
           id="imageUrl"
           name="imageUrl"
           value={displayedValues.imageUrl}
-          onChange={(event) => updateValue('imageUrl', event.target.value)}
+          onChange={(event) => handleImageUrlChange(event.target.value)}
           className="w-full rounded-sm border border-border bg-background px-3 py-3"
           aria-invalid={Boolean(error('imageUrl'))}
-          aria-describedby="imageUrl-hint"
+          aria-describedby={`imageUrl-hint${error('imageUrl') ? ' imageUrl-error' : ''}`}
         />
         <p id="imageUrl-hint" className="mt-2 text-sm text-muted-foreground">
           Use an existing local path such as /products/placeholder.svg.
         </p>
         {error('imageUrl') ? (
-          <p className="mt-2 text-sm text-red-800">{error('imageUrl')}</p>
+          <p id="imageUrl-error" className="mt-2 text-sm text-red-800">
+            {error('imageUrl')}
+          </p>
         ) : null}
-        {displayedValues.imageUrl.startsWith('/') && !displayedValues.imageUrl.startsWith('//') ? (
+        {!previewFailed &&
+        displayedValues.imageUrl.startsWith('/') &&
+        !displayedValues.imageUrl.startsWith('//') ? (
           <div className="relative mt-4 h-32 w-48 overflow-hidden bg-muted">
-            <Image src={displayedValues.imageUrl} alt="Product preview" fill className="object-cover" />
+            <Image
+              src={displayedValues.imageUrl}
+              alt="Product preview"
+              fill
+              className="object-cover"
+              onError={() => setPreviewFailed(true)}
+            />
           </div>
         ) : null}
       </div>
