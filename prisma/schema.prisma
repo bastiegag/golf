@@ -24,7 +24,9 @@ model Product {
 
 enum OrderStatus {
   PENDING
-  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
   CANCELLED
 }
 
@@ -41,6 +43,7 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  statusChanges OrderStatusHistory[]
 }
 
 model Order {
@@ -58,10 +61,11 @@ model Order {
   shippingCountry   String
   subtotalCents     Int
   totalCents        Int
-  status            OrderStatus @default(CONFIRMED)
+  status            OrderStatus @default(PENDING)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   items             OrderItem[]
+  statusHistory     OrderStatusHistory[]
 }
 
 model OrderItem {
@@ -88,4 +92,18 @@ model Category {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   products  Product[]
+}
+
+model OrderStatusHistory {
+  id              String      @id @default(cuid())
+  orderId         String
+  previousStatus  OrderStatus
+  newStatus       OrderStatus
+  administratorId String?
+  createdAt       DateTime    @default(now())
+  order           Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  administrator   User?       @relation(fields: [administratorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@index([administratorId])
 }

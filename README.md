@@ -1,6 +1,6 @@
 # Golf
 
-A portfolio-quality storefront foundation for learning modern full-stack Next.js. The current release focuses on a responsive storefront, server-rendered product catalogue, category administration, a persistent client-side shopping cart, simulated checkout with PostgreSQL orders, and protected product administration. It intentionally does not include real payments or order administration.
+A portfolio-quality storefront foundation for learning modern full-stack Next.js. The current release focuses on a responsive storefront, server-rendered product catalogue, category administration, a persistent client-side shopping cart, simulated checkout with PostgreSQL orders, and protected product and order administration.
 
 ## Technology
 
@@ -20,7 +20,7 @@ The products route is a Server Component and stays dynamic so it reads the curre
 
 Administrators with an active `ADMIN` account can manage products at `/admin/products`, create products at `/admin/products/new`, and edit products at `/admin/products/[id]/edit`. The list includes active and inactive products with server-side search, status/category filters, and pagination. Product mutations use authenticated Server Actions, server-side Zod validation, unique slug handling, category relation checks, and Prisma Decimal prices. Activation/deactivation only changes storefront visibility; it never deletes products or changes historical orders. Order items retain their original name, slug, price, quantity, and totals when a product is edited.
 
-Product images currently accept local paths such as `/products/placeholder.svg`; external image hosts and uploads are intentionally unsupported. Product forms select from existing categories; category creation and editing are handled in the category administration interface described below. The validation and authorization behavior is covered by the unit/integration test suites; run `npm run lint`, `npm run typecheck`, `npm run test:unit`, `npm run build`, `npm run test:integration`, and `npm run test:e2e` for the full check. The remaining limitations are order administration, inventory, variants, uploads, and payment processing.
+Product images currently accept local paths such as `/products/placeholder.svg`; external image hosts and uploads are intentionally unsupported. Product forms select from existing categories; category creation and editing are handled in the category administration interface described below. The validation and authorization behavior is covered by the unit/integration test suites; run `npm run lint`, `npm run typecheck`, `npm run test:unit`, `npm run build`, `npm run test:integration`, and `npm run test:e2e` for the full check. The remaining limitations are inventory, variants, uploads, and payment processing.
 
 The product form uses one controlled typed state object, synchronized with the
 React 19 Server Action response, so values remain editable after validation
@@ -61,6 +61,34 @@ Repeated seeding updates category names but preserves an administrator's
 active/inactive choice. Category integration tests use only `golf_test`, and
 category E2E cleanup validates the database through the centralized test
 environment helper before removing test-owned products and categories.
+
+## Order administration
+
+Active administrators can review orders at `/admin/orders` and open an order
+at `/admin/orders/[id]`. The list uses server-side offset pagination and
+supports search by order number, customer name, or customer email, plus
+fulfillment-status and UTC calendar-date filters. Invalid page values are
+normalized, and pagination preserves the active filters.
+
+Orders use the fulfillment statuses `PENDING`, `PROCESSING`, `SHIPPED`,
+`DELIVERED`, and `CANCELLED`. The allowed manual transitions are:
+
+- `PENDING` to `PROCESSING` or `CANCELLED`
+- `PROCESSING` to `SHIPPED` or `CANCELLED`
+- `SHIPPED` to `DELIVERED`
+
+Delivered and cancelled orders are terminal. Each successful status change is
+written to `OrderStatusHistory` in the same transaction as the order update.
+The update uses a conditional status write, so a stale administrator receives
+a conflict message instead of creating misleading history. Existing legacy
+`CONFIRMED` rows are migrated to `PENDING`; checkout remains simulated and
+new orders start as `PENDING`.
+
+Order detail pages render persisted customer, total, and `OrderItem` snapshot
+values. Product edits, repricing, deactivation, and category changes do not
+alter historical order details. This phase intentionally does not include
+payments, refunds, shipping carriers, notifications, inventory, customer
+accounts, or order deletion.
 
 ## Local development with Docker Compose
 

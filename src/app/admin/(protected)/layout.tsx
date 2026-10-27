@@ -33,6 +33,9 @@ export default async function AdminLayout({
             <Link href="/admin/categories" className="text-sm font-medium underline underline-offset-4">
               Categories
             </Link>
+            <Link href="/admin/orders" className="text-sm font-medium underline underline-offset-4">
+              Orders
+            </Link>
             <p className="hidden text-sm text-muted-foreground sm:block">
               {user.name || user.email}
             </p>
