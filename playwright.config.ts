@@ -1,13 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
+import { loadTestEnvironment } from './scripts/test-environment';
 
-const webServerEnv = process.env.E2E_DATABASE_URL
-  ? {
-      DATABASE_URL: process.env.E2E_DATABASE_URL,
-      ...(process.env.AUTH_SECRET
-        ? { AUTH_SECRET: process.env.AUTH_SECRET }
-        : {}),
-    }
-  : undefined;
+const testEnvironment = loadTestEnvironment();
+const webServerEnv = {
+  ...testEnvironment,
+  ...(process.env.AUTH_SECRET ? { AUTH_SECRET: process.env.AUTH_SECRET } : {}),
+};
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,7 +13,7 @@ export default defineConfig({
   fullyParallel: true,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3100',
     trace: 'retain-on-failure',
   },
   projects: [
@@ -25,10 +23,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run dev -- --port 3100',
     env: webServerEnv,
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    url: 'http://localhost:3100',
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

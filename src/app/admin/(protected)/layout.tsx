@@ -27,6 +27,9 @@ export default async function AdminLayout({
             GOLF ADMIN
           </Link>
           <div className="flex items-center gap-5">
+            <Link href="/admin/products" className="text-sm font-medium underline underline-offset-4">
+              Products
+            </Link>
             <p className="hidden text-sm text-muted-foreground sm:block">
               {user.name || user.email}
             </p>

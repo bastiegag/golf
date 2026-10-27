@@ -16,8 +16,8 @@ export default async function AdminDashboardPage() {
         Welcome, {user.name || user.email}.
       </h1>
       <p className="mt-5 max-w-2xl leading-7 text-muted-foreground">
-        You are signed in as an administrator. Product, category, and order
-        management will be added in a future phase.
+        You are signed in as an administrator. Use the Products link to manage
+        the public catalogue.
       </p>
     </div>
   );

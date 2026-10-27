@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:unit": "vitest run",
-    "test:integration": "DATABASE_URL=\"$E2E_DATABASE_URL\" prisma migrate deploy && DATABASE_URL=\"$E2E_DATABASE_URL\" prisma db seed && DATABASE_URL=\"$E2E_DATABASE_URL\" npm exec tsx scripts/ensure-e2e-admin.ts && DATABASE_URL=\"$E2E_DATABASE_URL\" vitest run --config vitest.integration.config.mts",
+    "test:integration": "tsx scripts/run-integration-tests.ts",
     "test:e2e": "playwright test",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -21,6 +21,9 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose stop postgres",
+    "db:logs": "docker compose logs -f postgres",
     "admin:create": "tsx scripts/create-admin.ts"
   },
   "dependencies": {

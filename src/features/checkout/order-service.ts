@@ -27,6 +27,7 @@ export type CreatedOrder = {
   orderNumber: string;
   confirmationToken: string;
   totalCents: number;
+  requestFingerprint: string;
 };
 
 export type CheckoutQuote = {
@@ -198,7 +199,12 @@ export async function createOrder(
         if (existingOrder.requestFingerprint !== requestFingerprint) {
           throw new IdempotencyConflictError();
         }
-        return existingOrder;
+        return {
+          orderNumber: existingOrder.orderNumber,
+          confirmationToken: existingOrder.confirmationToken,
+          totalCents: existingOrder.totalCents,
+          requestFingerprint: existingOrder.requestFingerprint,
+        };
       }
 
       const products = await transaction.product.findMany({
@@ -261,7 +267,12 @@ export async function createOrder(
         },
       });
 
-      return { orderNumber, confirmationToken, totalCents: totals.totalCents };
+      return {
+        orderNumber,
+        confirmationToken,
+        totalCents: totals.totalCents,
+        requestFingerprint,
+      };
     });
   } catch (error) {
     if (error instanceof OrderValidationError) {
@@ -286,7 +297,12 @@ export async function createOrder(
       if (existingOrder.requestFingerprint !== requestFingerprint) {
         throw new IdempotencyConflictError();
       }
-      return existingOrder;
+      return {
+        orderNumber: existingOrder.orderNumber,
+        confirmationToken: existingOrder.confirmationToken,
+        totalCents: existingOrder.totalCents,
+        requestFingerprint: existingOrder.requestFingerprint,
+      };
     }
 
     throw new Error('Unable to create the order.');

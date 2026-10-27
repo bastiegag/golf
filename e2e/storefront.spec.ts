@@ -169,7 +169,7 @@ test.describe('administrator authentication', () => {
     await page.getByLabel('Password').fill('incorrect administrator password');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
-    await expect(page.getByRole('alert')).toHaveText(
+    await expect(page.locator('p[role="alert"]')).toHaveText(
       'Invalid email or password.',
     );
   });

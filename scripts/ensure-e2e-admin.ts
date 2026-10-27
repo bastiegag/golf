@@ -5,52 +5,56 @@ import { PrismaClient } from '../src/generated/prisma/client';
 import { hashPassword, verifyPassword } from '../src/features/auth/password';
 import { adminProvisioningSchema } from '../src/features/auth/schemas';
 
-const result = adminProvisioningSchema.safeParse({
-  email: process.env.E2E_ADMIN_EMAIL,
-  password: process.env.E2E_ADMIN_PASSWORD,
-});
-
-if (!result.success) {
-  throw new Error(
-    'Set E2E_ADMIN_EMAIL and a 12-character E2E_ADMIN_PASSWORD for auth tests.',
-  );
-}
-
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error('Set DATABASE_URL before preparing the E2E administrator.');
-}
-
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: databaseUrl }),
-});
-
-try {
-  const existing = await prisma.user.findUnique({
-    where: { email: result.data.email },
-    select: { passwordHash: true, isActive: true, role: true },
+async function main() {
+  const result = adminProvisioningSchema.safeParse({
+    email: process.env.E2E_ADMIN_EMAIL,
+    password: process.env.E2E_ADMIN_PASSWORD,
   });
 
-  if (existing) {
-    if (
-      existing.role !== 'ADMIN' ||
-      !existing.isActive ||
-      !(await verifyPassword(result.data.password, existing.passwordHash))
-    ) {
-      throw new Error(
-        'The existing E2E administrator does not match the configured test credentials.',
-      );
-    }
-  } else {
-    await prisma.user.create({
-      data: {
-        email: result.data.email,
-        name: 'E2E Administrator',
-        passwordHash: await hashPassword(result.data.password),
-        role: 'ADMIN',
-      },
-    });
+  if (!result.success) {
+    throw new Error(
+      'Set E2E_ADMIN_EMAIL and a 12-character E2E_ADMIN_PASSWORD for auth tests.',
+    );
   }
-} finally {
-  await prisma.$disconnect();
+
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('Set DATABASE_URL before preparing the E2E administrator.');
+  }
+
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: databaseUrl }),
+  });
+
+  try {
+    const existing = await prisma.user.findUnique({
+      where: { email: result.data.email },
+      select: { passwordHash: true, isActive: true, role: true },
+    });
+
+    if (existing) {
+      if (
+        existing.role !== 'ADMIN' ||
+        !existing.isActive ||
+        !(await verifyPassword(result.data.password, existing.passwordHash))
+      ) {
+        throw new Error(
+          'The existing E2E administrator does not match the configured test credentials.',
+        );
+      }
+    } else {
+      await prisma.user.create({
+        data: {
+          email: result.data.email,
+          name: 'E2E Administrator',
+          passwordHash: await hashPassword(result.data.password),
+          role: 'ADMIN',
+        },
+      });
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
 }
+
+void main();
