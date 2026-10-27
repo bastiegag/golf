@@ -56,7 +56,18 @@ export async function verifyPassword(password: string, storedHash: string) {
   const N = Number(values.get('N'));
   const r = Number(values.get('r'));
   const p = Number(values.get('p'));
-  if (![N, r, p].every(Number.isSafeInteger) || N <= 1 || r <= 0 || p <= 0) {
+  if (
+    !Number.isSafeInteger(N) ||
+    !Number.isSafeInteger(r) ||
+    !Number.isSafeInteger(p) ||
+    N <= 1 ||
+    N > 1_048_576 ||
+    (N & (N - 1)) !== 0 ||
+    r <= 0 ||
+    r > 32 ||
+    p <= 0 ||
+    p > 16
+  ) {
     return false;
   }
 

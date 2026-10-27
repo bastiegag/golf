@@ -46,6 +46,13 @@ model User {
   statusChanges OrderStatusHistory[]
 }
 
+model LoginThrottle {
+  key              String   @id
+  windowStartedAt  DateTime
+  attempts         Int
+  updatedAt        DateTime @updatedAt
+}
+
 model Order {
   id                String      @id @default(cuid())
   orderNumber       String      @unique

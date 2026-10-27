@@ -131,6 +131,14 @@ named volume is initialized for the first time; initialization scripts do not ru
 again for an existing volume. Prisma migrations and seed scripts manage application
 schema and data, not the PostgreSQL initialization script.
 
+`.env.example` documents the local variables required by the application:
+`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_PORT`,
+`DATABASE_URL`, `E2E_DATABASE_URL`, `AUTH_SECRET`, `E2E_ADMIN_EMAIL`, and
+`E2E_ADMIN_PASSWORD`. Values in that file are placeholders only. Production
+must provide a strong unique `AUTH_SECRET` and separate production database
+credentials through the process environment or a secret manager; never expose
+server secrets through `NEXT_PUBLIC_*`.
+
 The Compose volume is independent from any manually created PostgreSQL container,
 so it does not automatically contain that container's data. Do not delete the old
 container or volume as a default troubleshooting step. If migration from it is
@@ -174,16 +182,22 @@ and restore deliberately with `pg_restore` or `psql` after reviewing the target.
 | `npm run storybook`       | Start Storybook                                     |
 | `npm run build-storybook` | Build Storybook                                     |
 
+Use `npm run db:migrate:deploy` for production schema changes after reviewing
+the migration and taking the normal database backup. Do not use
+`prisma db push`, `prisma migrate reset`, test cleanup scripts, or the
+development seed against production. The seed explicitly refuses to run when
+`NODE_ENV=production`.
+
 ## Testing
 
 - `npm run test:unit` runs Vitest and React Testing Library tests.
-- `npm run test:e2e` applies committed migrations, seeds the deterministic catalogue, and runs the Playwright storefront and cart tests against `golf_test`. It requires `E2E_DATABASE_URL`, `AUTH_SECRET`, and Chromium installed with `npx playwright install chromium`. Playwright uses a dedicated server on port 3100 and never reuses a running development server.
+- `npm run test:e2e` applies committed migrations, seeds the deterministic catalogue, and runs the Playwright suite against `golf_test`. It requires `E2E_DATABASE_URL`, `AUTH_SECRET`, and Chromium installed with `npx playwright install chromium`. Playwright uses a dedicated server on port 3100 and never reuses a running development server.
 
 Unit tests do not require a database or production credentials. Browser tests use the configured database only for deterministic migration and seed setup.
 
 ## Checkout and orders
 
-Checkout is simulated: it does not process payments, taxes, or shipping charges. Submitting checkout creates a `CONFIRMED` `Order` and its `OrderItem` snapshots in PostgreSQL inside one Prisma transaction. The server compares the submitted accepted total with freshly read database prices before creating the order, so stale checkout totals are rejected. Each request also stores a SHA-256 fingerprint of the normalized checkout fields, cart, and accepted total. A retry with the same idempotency key and fingerprint returns the existing order; reusing a key for different details is rejected without exposing the existing confirmation token. Order items retain product names, slugs, unit prices, quantities, and line totals as historical snapshots.
+Checkout is simulated: it does not process payments, taxes, or shipping charges. Submitting checkout creates a `PENDING` `Order` and its `OrderItem` snapshots in PostgreSQL inside one Prisma transaction. The server compares the submitted accepted total with freshly read database prices before creating the order, so stale checkout totals are rejected. Each request also stores a SHA-256 fingerprint of the normalized checkout fields, cart, and accepted total. A retry with the same idempotency key and fingerprint returns the existing order; reusing a key for different details is rejected without exposing the existing confirmation token. Order items retain product names, slugs, unit prices, quantities, and line totals as historical snapshots.
 
 Product deletion is restricted when an order item references it. This preserves the product relation while the snapshots preserve historical display data if the product is later changed. Confirmation pages require both the human-readable order number and a random confirmation token; the order number alone is not sufficient access.
 
@@ -198,7 +212,13 @@ Administrator authentication uses Auth.js `next-auth@5.0.0-beta.32` with a Crede
 
 Set `AUTH_SECRET` in `.env` using `npx auth secret` (or another secure random-value generator). Apply the user migration with `npm run db:migrate`, then provision the first administrator locally with `npm run admin:create`. The command prompts for an email and hidden password input, rejects weak passwords, and never overwrites an existing account. `ADMIN_EMAIL` and `ADMIN_PASSWORD` may be supplied only for controlled local automation; do not commit them or use them in production logs.
 
-There is no public registration flow. The login page is `/admin/login`; unauthenticated requests to other `/admin` paths are redirected there, and signed-in administrators are redirected to the dashboard when visiting the login page. Admin responses are dynamic, marked `no-store`, and sent with `noindex, nofollow` and `no-referrer` headers. The current limitation is that login-attempt rate limiting is deployment-specific and is not represented by an ineffective in-memory limiter; production deployment should add an edge or durable rate-limit service.
+There is no public registration flow. The login page is `/admin/login`; unauthenticated requests to other `/admin` paths are redirected there, and signed-in administrators are redirected to the dashboard when visiting the login page. Admin responses are dynamic, marked `no-store`, and sent with `noindex, nofollow` and `no-referrer` headers. Failed login attempts are throttled in PostgreSQL to five attempts per email-keyed 15-minute window across application instances; successful authentication clears the window. This is bounded throttling, not a permanent account lockout.
+
+All responses include `X-Content-Type-Options: nosniff` and a restrictive
+`Permissions-Policy`. Production responses also include HSTS; local development
+does not enable HSTS. A restrictive Content Security Policy is intentionally
+not enabled until the Next.js, Auth.js, and Storybook asset requirements are
+validated together.
 
 Authentication E2E and PostgreSQL integration tests also require `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`, and `AUTH_SECRET`. The test setup creates the administrator only when it is absent and rejects mismatched existing credentials; it never silently changes an existing password.
 

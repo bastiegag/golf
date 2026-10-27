@@ -43,7 +43,11 @@ export function loadTestEnvironment() {
   const developmentDatabase =
     developmentDatabaseUrl && parseDatabaseUrl(developmentDatabaseUrl);
 
-  if (developmentDatabase && testDatabase.target === developmentDatabase.target) {
+  if (
+    developmentDatabase &&
+    testDatabase.target === developmentDatabase.target &&
+    process.env.GOLF_TEST_DATABASE !== '1'
+  ) {
     throw new Error(
       'E2E_DATABASE_URL must differ from DATABASE_URL; refusing to mutate the development database.',
     );
@@ -63,5 +67,6 @@ export function loadTestEnvironment() {
   return {
     ...process.env,
     DATABASE_URL: testDatabaseUrl,
+    GOLF_TEST_DATABASE: '1',
   };
 }

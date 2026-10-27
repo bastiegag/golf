@@ -36,6 +36,10 @@ const productSeed = productSeedSchema.array().parse([
 ]);
 
 async function seedProducts() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('The development seed is disabled in production.');
+  }
+
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {

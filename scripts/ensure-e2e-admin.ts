@@ -1,9 +1,8 @@
-import 'dotenv/config';
-
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { hashPassword, verifyPassword } from '../src/features/auth/password';
 import { adminProvisioningSchema } from '../src/features/auth/schemas';
+import { loadTestEnvironment } from './test-environment';
 
 async function main() {
   const result = adminProvisioningSchema.safeParse({
@@ -17,13 +16,10 @@ async function main() {
     );
   }
 
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error('Set DATABASE_URL before preparing the E2E administrator.');
-  }
+  const environment = loadTestEnvironment();
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: databaseUrl }),
+    adapter: new PrismaPg({ connectionString: environment.DATABASE_URL }),
   });
 
   try {

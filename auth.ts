@@ -3,9 +3,14 @@ import Credentials from 'next-auth/providers/credentials';
 import { loginSchema } from '@/features/auth/schemas';
 import { getUserByEmail } from '@/features/auth/queries';
 import { verifyPassword } from '@/features/auth/password';
+import {
+  clearLoginAttempts,
+  consumeLoginAttempt,
+} from '@/features/auth/login-throttle';
+import { getAuthSecret } from '@/features/auth/runtime-config';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET,
+  secret: getAuthSecret(),
   session: { strategy: 'jwt', maxAge: 60 * 60 * 8 },
   pages: { signIn: '/admin/login' },
   providers: [
@@ -20,6 +25,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        if (!(await consumeLoginAttempt(result.data.email))) {
+          return null;
+        }
+
         const user = await getUserByEmail(result.data.email);
         if (!user || !user.isActive || user.role !== 'ADMIN') {
           return null;
@@ -29,6 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        await clearLoginAttempts(result.data.email);
         return {
           id: user.id,
           email: user.email,
