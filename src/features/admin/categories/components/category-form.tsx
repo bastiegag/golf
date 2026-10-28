@@ -4,6 +4,9 @@ import { useActionState, useEffect, useState } from 'react';
 import type { CategoryActionState, CategoryFormValues } from '../actions';
 import { slugifyCategoryName } from '../schemas';
 import { SubmitButton } from './submit-button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 
 type CategoryFormProps = {
   initialValues: CategoryFormValues;
@@ -42,16 +45,14 @@ export function CategoryForm({
       {state.message ? (
         <p
           role="alert"
-          className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+          className="rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-body-sm text-destructive"
         >
           {state.message}
         </p>
       ) : null}
-      <div>
-        <label htmlFor="name" className="mb-2 block text-sm font-medium">
-          Name
-        </label>
-        <input
+      <Field>
+        <FieldLabel htmlFor="name">Name</FieldLabel>
+        <Input
           id="name"
           name="name"
           value={values.name}
@@ -63,21 +64,14 @@ export function CategoryForm({
               slug: slugTouched ? current.slug : slugifyCategoryName(name),
             }));
           }}
-          className="w-full rounded-sm border border-border bg-background px-3 py-3"
           aria-invalid={Boolean(error('name'))}
           aria-describedby={error('name') ? 'name-error' : undefined}
         />
-        {error('name') ? (
-          <p id="name-error" className="mt-2 text-sm text-red-800">
-            {error('name')}
-          </p>
-        ) : null}
-      </div>
-      <div>
-        <label htmlFor="slug" className="mb-2 block text-sm font-medium">
-          Slug
-        </label>
-        <input
+        <FieldError id="name-error">{error('name')}</FieldError>
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="slug">Slug</FieldLabel>
+        <Input
           id="slug"
           name="slug"
           value={values.slug}
@@ -85,19 +79,13 @@ export function CategoryForm({
             setSlugTouched(true);
             setValues((current) => ({ ...current, slug: event.target.value }));
           }}
-          className="w-full rounded-sm border border-border bg-background px-3 py-3"
           aria-invalid={Boolean(error('slug'))}
           aria-describedby={error('slug') ? 'slug-error' : undefined}
         />
-        {error('slug') ? (
-          <p id="slug-error" className="mt-2 text-sm text-red-800">
-            {error('slug')}
-          </p>
-        ) : null}
-      </div>
-      <label className="flex items-center gap-3 text-sm font-medium">
-        <input
-          type="checkbox"
+        <FieldError id="slug-error">{error('slug')}</FieldError>
+      </Field>
+      <FieldLabel className="flex items-center gap-3">
+        <Checkbox
           name="isActive"
           checked={values.isActive}
           onChange={(event) =>
@@ -106,10 +94,9 @@ export function CategoryForm({
               isActive: event.target.checked,
             }))
           }
-          className="size-4 accent-[var(--accent)]"
         />
         Active in the public storefront
-      </label>
+      </FieldLabel>
       <SubmitButton>{submitLabel}</SubmitButton>
     </form>
   );

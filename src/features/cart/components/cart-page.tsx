@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/layout/container';
 import { useCart } from '@/features/cart/context';
 import { MAX_CART_QUANTITY } from '@/features/cart/constants';
 import { CartSummary } from '@/features/cart/components/cart-summary';
@@ -19,21 +20,18 @@ export function CartPage() {
 
   if (!isHydrated) {
     return (
-      <div
-        className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20"
-        aria-busy="true"
-      >
+      <Container className="py-16 sm:py-20" aria-busy="true">
         <h1 className="text-4xl font-medium tracking-[-0.045em] sm:text-5xl">
           Your cart
         </h1>
         <p className="mt-5 text-muted-foreground">Loading your cart…</p>
-      </div>
+      </Container>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+      <Container className="py-16 sm:py-20">
         <h1 className="text-4xl font-medium tracking-[-0.045em] sm:text-5xl">
           Your cart
         </h1>
@@ -49,12 +47,12 @@ export function CartPage() {
             Continue shopping
           </Link>
         </div>
-      </div>
+      </Container>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+    <Container className="py-16 sm:py-20">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-4 text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
@@ -108,42 +106,45 @@ export function CartPage() {
                       className="flex items-center gap-2"
                       aria-label={`Quantity of ${item.name}`}
                     >
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() =>
                           updateQuantity(item.productId, item.quantity - 1)
                         }
                         disabled={item.quantity === 1}
                         aria-label={`Decrease quantity of ${item.name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border text-lg leading-none disabled:opacity-40 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#829c88]"
+                        className="h-8 w-8 p-0 text-lg leading-none disabled:opacity-40"
                       >
                         −
-                      </button>
+                      </Button>
                       <span
                         className="min-w-5 text-center text-sm"
                         aria-label={`${item.quantity} items`}
                       >
                         {item.quantity}
                       </span>
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() =>
                           updateQuantity(item.productId, item.quantity + 1)
                         }
                         disabled={item.quantity === MAX_CART_QUANTITY}
                         aria-label={`Increase quantity of ${item.name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border text-lg leading-none disabled:opacity-40 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#829c88]"
+                        className="h-8 w-8 p-0 text-lg leading-none disabled:opacity-40"
                       >
                         +
-                      </button>
+                      </Button>
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => removeItem(item.productId)}
-                      className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-offset-4"
+                      className="p-0 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </li>
@@ -152,6 +153,6 @@ export function CartPage() {
         </section>
         <CartSummary />
       </div>
-    </div>
+    </Container>
   );
 }

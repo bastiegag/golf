@@ -35,7 +35,7 @@ export default async function AdminCategoriesPage({
       {success === 'created' || success === 'updated' ? (
         <p
           role="status"
-          className="mb-6 rounded-sm border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900"
+          className="mb-6 rounded-sm border border-success/30 bg-success/10 px-4 py-3 text-body-sm text-success"
         >
           Category {success === 'created' ? 'created' : 'updated'} successfully.
         </p>

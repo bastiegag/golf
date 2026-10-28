@@ -3,6 +3,12 @@
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import {
+  Field,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { loginAction, type LoginActionState } from '../actions';
 
 const initialState: LoginActionState = {};
@@ -23,48 +29,43 @@ export function LoginForm() {
   return (
     <form action={formAction} className="mt-8 space-y-5">
       {state.message ? (
-        <p role="alert" className="rounded-sm bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p
+          role="alert"
+          className="rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-body-sm text-destructive"
+        >
           {state.message}
         </p>
       ) : null}
-      <div>
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <input
+      <Field>
+        <FieldLabel htmlFor="email">Email</FieldLabel>
+        <Input
           id="email"
           name="email"
           type="email"
           autoComplete="username"
           required
           aria-invalid={Boolean(state.fieldErrors?.email)}
-          className="mt-2 w-full rounded-sm border border-border bg-background px-3 py-3 text-sm focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#829c88]"
+          aria-describedby={state.fieldErrors?.email ? 'email-error' : undefined}
         />
-        {state.fieldErrors?.email ? (
-          <p className="mt-1 text-sm text-red-700">
-            {state.fieldErrors.email}
-          </p>
-        ) : null}
-      </div>
-      <div>
-        <label htmlFor="password" className="text-sm font-medium">
-          Password
-        </label>
-        <input
+        <FieldError id="email-error">{state.fieldErrors?.email}</FieldError>
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="password">Password</FieldLabel>
+        <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
           aria-invalid={Boolean(state.fieldErrors?.password)}
-          className="mt-2 w-full rounded-sm border border-border bg-background px-3 py-3 text-sm focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#829c88]"
+          aria-describedby={
+            state.fieldErrors?.password ? 'password-error' : undefined
+          }
         />
-        {state.fieldErrors?.password ? (
-          <p className="mt-1 text-sm text-red-700">
-            {state.fieldErrors.password}
-          </p>
-        ) : null}
-      </div>
+        <FieldError id="password-error">
+          {state.fieldErrors?.password}
+        </FieldError>
+      </Field>
       <SubmitButton />
     </form>
   );

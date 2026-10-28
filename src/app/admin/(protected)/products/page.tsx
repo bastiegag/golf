@@ -4,6 +4,9 @@ import { getAdminCategories, getAdminProducts } from '@/features/admin/products/
 import { parseProductFilters } from '@/features/admin/products/schemas';
 import { ProductTable } from '@/features/admin/products/components/product-table';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 
 export const metadata: Metadata = { title: 'Products' };
 export const dynamic = 'force-dynamic';
@@ -50,28 +53,28 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         <Button asChild><Link href="/admin/products/new">New product</Link></Button>
       </div>
       {success === 'created' || success === 'updated' ? (
-        <p role="status" className="mb-6 rounded-sm border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+        <p role="status" className="mb-6 rounded-sm border border-success/30 bg-success/10 px-4 py-3 text-body-sm text-success">
           Product {success === 'created' ? 'created' : 'updated'} successfully.
         </p>
       ) : null}
       <form className="mb-8 grid gap-4 rounded-sm border border-border bg-background p-4 sm:grid-cols-[minmax(0,1fr)_160px_220px_auto] sm:items-end">
-        <div>
-          <label htmlFor="query" className="mb-2 block text-sm font-medium">Search</label>
-          <input id="query" name="query" defaultValue={filters.query} placeholder="Name or slug" className="w-full rounded-sm border border-border bg-background px-3 py-2.5" />
-        </div>
-        <div>
-          <label htmlFor="status" className="mb-2 block text-sm font-medium">Status</label>
-          <select id="status" name="status" defaultValue={filters.status} className="w-full rounded-sm border border-border bg-background px-3 py-2.5">
+        <Field>
+          <FieldLabel htmlFor="query">Search</FieldLabel>
+          <Input id="query" name="query" defaultValue={filters.query} placeholder="Name or slug" />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="status">Status</FieldLabel>
+          <Select id="status" name="status" defaultValue={filters.status}>
             <option value="all">All</option><option value="active">Active</option><option value="inactive">Inactive</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="categoryId" className="mb-2 block text-sm font-medium">Category</label>
-          <select id="categoryId" name="categoryId" defaultValue={filters.categoryId} className="w-full rounded-sm border border-border bg-background px-3 py-2.5">
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="categoryId">Category</FieldLabel>
+          <Select id="categoryId" name="categoryId" defaultValue={filters.categoryId}>
             <option value="">All categories</option>
             {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-        </div>
+          </Select>
+        </Field>
         <Button type="submit">Filter</Button>
       </form>
       {result.products.length ? (

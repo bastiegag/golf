@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Container } from '@/components/layout/container';
 import { logoutAction } from '@/features/auth/actions';
 import { requireAdmin } from '@/features/auth/authorization';
 
@@ -18,7 +20,7 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-muted/20">
       <header className="border-b border-border bg-background">
-        <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-8">
+        <Container className="flex min-h-20 items-center justify-between gap-6">
           <Link
             href="/admin"
             className="text-xl font-semibold tracking-[0.16em]"
@@ -40,17 +42,20 @@ export default async function AdminLayout({
               {user.name || user.email}
             </p>
             <form action={logoutAction}>
-              <button
+              <Button
                 type="submit"
-                className="text-sm font-medium underline underline-offset-4 focus-visible:outline-offset-4"
+                variant="ghost"
+                className="p-0 text-sm font-medium underline underline-offset-4"
               >
                 Sign out
-              </button>
+              </Button>
             </form>
           </div>
-        </div>
+          </Container>
       </header>
-      <main className="mx-auto max-w-7xl px-5 py-12 sm:px-8">{children}</main>
+      <main>
+        <Container className="py-12">{children}</Container>
+      </main>
     </div>
   );
 }

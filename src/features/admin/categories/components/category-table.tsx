@@ -40,7 +40,7 @@ export function CategoryTable({ categories }: { categories: AdminCategory[] }) {
                 </Link>
               </td>
               <td className="px-4 py-4">
-                <span className={category.isActive ? 'text-green-800' : 'text-muted-foreground'}>
+                <span className={category.isActive ? 'text-success' : 'text-muted-foreground'}>
                   {category.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>

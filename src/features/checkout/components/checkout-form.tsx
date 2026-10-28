@@ -5,6 +5,12 @@ import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import {
+  Field,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { useCart } from '@/features/cart/context';
 import { formatCents } from '@/features/cart/utils';
 import { quoteCheckout, submitCheckout } from '@/features/checkout/actions';
@@ -29,7 +35,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-function Field({
+function CustomerField({
   id,
   label,
   type = 'text',
@@ -42,25 +48,20 @@ function Field({
   error?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div>
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <input
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
         {...props}
         id={id}
         name={id}
         type={type}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="mt-2 w-full rounded-sm border border-border bg-background px-3 py-3 text-sm focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#829c88]"
       />
-      {error ? (
-        <p id={`${id}-error`} className="mt-1 text-sm text-red-700">
-          {error}
-        </p>
-      ) : null}
-    </div>
+      <FieldError id={`${id}-error`}>
+        {error}
+      </FieldError>
+    </Field>
   );
 }
 
@@ -185,7 +186,7 @@ export function CheckoutForm() {
 
       {state.status === 'error' ? (
         <div
-          className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          className="rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-body-sm text-destructive"
           role="alert"
         >
           {state.message}
@@ -193,27 +194,27 @@ export function CheckoutForm() {
       ) : null}
       {state.status === 'price-changed' ? (
         <p
-          className="rounded-sm border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          className="rounded-sm border border-warning/30 bg-warning/10 px-4 py-3 text-body-sm text-warning-foreground"
           role="alert"
         >
           {state.message}
         </p>
       ) : null}
       {quote.status === 'error' ? (
-        <p className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+        <p className="rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-body-sm text-destructive" role="alert">
           {quote.message}
         </p>
       ) : null}
 
       <fieldset className="space-y-5">
         <legend className="text-xl font-medium">Customer information</legend>
-        <Field
+        <CustomerField
           id="customerName"
           label="Full name"
           autoComplete="name"
           error={fieldErrors?.customerName}
         />
-        <Field
+        <CustomerField
           id="customerEmail"
           label="Email address"
           type="email"
@@ -224,32 +225,32 @@ export function CheckoutForm() {
 
       <fieldset className="space-y-5">
         <legend className="text-xl font-medium">Shipping address</legend>
-        <Field
+        <CustomerField
           id="shippingAddress"
           label="Street address"
           autoComplete="street-address"
           error={fieldErrors?.shippingAddress}
         />
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field
+          <CustomerField
             id="shippingCity"
             label="City"
             autoComplete="address-level2"
             error={fieldErrors?.shippingCity}
           />
-          <Field
+          <CustomerField
             id="shippingRegion"
             label="Province, state, or region"
             autoComplete="address-level1"
             error={fieldErrors?.shippingRegion}
           />
-          <Field
+          <CustomerField
             id="shippingPostalCode"
             label="Postal or ZIP code"
             autoComplete="postal-code"
             error={fieldErrors?.shippingPostalCode}
           />
-          <Field
+          <CustomerField
             id="shippingCountry"
             label="Country"
             autoComplete="country-name"
@@ -296,7 +297,7 @@ export function CheckoutForm() {
 
       {pricesChanged && !priceConfirmed ? (
         <div className="space-y-3">
-          <p className="text-sm text-amber-800" role="alert">
+          <p className="text-body-sm text-warning" role="alert">
             Product prices changed. Review the updated total and confirm it
             before placing your order.
           </p>

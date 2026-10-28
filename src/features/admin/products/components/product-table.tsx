@@ -47,7 +47,7 @@ export function ProductTable({ products }: { products: AdminProduct[] }) {
               </td>
               <td className="px-4 py-4">{formatPrice(product.price)}</td>
               <td className="px-4 py-4">
-                <span className={product.isActive ? 'text-green-800' : 'text-muted-foreground'}>
+                <span className={product.isActive ? 'text-success' : 'text-muted-foreground'}>
                   {product.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>

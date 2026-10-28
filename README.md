@@ -273,6 +273,36 @@ required, description, error, native submission, and indeterminate examples.
 The accessibility addon checks stable stories, while manual keyboard and
 focus review remains necessary.
 
+## Design System integration
+
+The shared primitives are now integrated into the main application where their
+abstractions are appropriate:
+
+- Administrator login uses `Field`, `FieldLabel`, `FieldError`, and `Input`.
+- Checkout customer fields use the same field composition while preserving
+  the existing React 19 `useActionState`, quote flow, idempotency fields, and
+  Server Action.
+- Product and category administration uses `Input`, `Select`, `Checkbox`,
+  `Textarea`, and explicit field composition.
+- Order status updates and administration filters use `Select`, `Input`,
+  `Field`, and `FieldLabel`.
+- Cart quantity and removal actions use the shared `Button` variants.
+- Repeated storefront and administration page-width wrappers use `Container`.
+
+Native links, hidden Server Action inputs, fieldsets, legends, and simple
+query controls remain native where that preserves semantics or is clearer than
+adding another abstraction. Application-specific forms retain their local
+state and business validation; the primitives do not import feature schemas,
+Server Actions, authentication, or database code.
+
+Use a shared primitive when the element is a reusable control or field
+composition. Keep native HTML when semantics are the primary concern, such as
+navigation links, hidden transport fields, or a one-off structural layout.
+Use semantic token utilities rather than raw palette colors for shared and
+status styling. New generic primitives belong in `src/components/ui` with
+colocated stories and behavioral tests; business-specific UI belongs in its
+feature directory and is not part of the current Storybook scope.
+
 ## Testing
 
 - `npm run test:unit` runs Vitest and React Testing Library tests.

@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { getAdminOrders } from '@/features/admin/orders/queries';
 import { parseOrderFilters } from '@/features/admin/orders/schemas';
 import { ORDER_STATUS_LABELS } from '@/features/admin/orders/transitions';
@@ -43,25 +46,25 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         <p className="mt-3 text-muted-foreground">{result.total} order{result.total === 1 ? '' : 's'} total</p>
       </div>
       <form className="mb-8 grid gap-4 rounded-sm border border-border bg-background p-4 sm:grid-cols-[minmax(0,1fr)_160px_160px_160px_auto] sm:items-end">
-        <div>
-          <label htmlFor="query" className="mb-2 block text-sm font-medium">Search</label>
-          <input id="query" name="query" defaultValue={filters.query} placeholder="Order number or customer" className="w-full rounded-sm border border-border bg-background px-3 py-2.5" />
-        </div>
-        <div>
-          <label htmlFor="status" className="mb-2 block text-sm font-medium">Status</label>
-          <select id="status" name="status" defaultValue={filters.status ?? ''} className="w-full rounded-sm border border-border bg-background px-3 py-2.5">
+        <Field>
+          <FieldLabel htmlFor="query">Search</FieldLabel>
+          <Input id="query" name="query" defaultValue={filters.query} placeholder="Order number or customer" />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="status">Status</FieldLabel>
+          <Select id="status" name="status" defaultValue={filters.status ?? ''}>
             <option value="">All statuses</option>
             {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="from" className="mb-2 block text-sm font-medium">From</label>
-          <input id="from" name="from" type="date" defaultValue={filters.from} className="w-full rounded-sm border border-border bg-background px-3 py-2.5" />
-        </div>
-        <div>
-          <label htmlFor="to" className="mb-2 block text-sm font-medium">To</label>
-          <input id="to" name="to" type="date" defaultValue={filters.to} className="w-full rounded-sm border border-border bg-background px-3 py-2.5" />
-        </div>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="from">From</FieldLabel>
+          <Input id="from" name="from" type="date" defaultValue={filters.from} />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="to">To</FieldLabel>
+          <Input id="to" name="to" type="date" defaultValue={filters.to} />
+        </Field>
         <Button type="submit">Filter</Button>
       </form>
       {result.orders.length ? (

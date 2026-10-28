@@ -3,6 +3,8 @@
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
 import type { OrderActionState } from '../schemas';
 import {
   getAllowedOrderTransitions,
@@ -64,23 +66,20 @@ export function OrderStatusForm({
         >
           <input type="hidden" name="orderId" value={orderId} />
           <input type="hidden" name="expectedStatus" value={status} />
-          <div>
-            <label htmlFor="next-status" className="mb-2 block text-sm font-medium">
-              Change to
-            </label>
-            <select
+          <Field>
+            <FieldLabel htmlFor="next-status">Change to</FieldLabel>
+            <Select
               id="next-status"
               name="status"
               defaultValue={options[0]}
-              className="rounded-sm border border-border bg-background px-3 py-2.5"
             >
               {options.map((option) => (
                 <option key={option} value={option}>
                   {ORDER_STATUS_LABELS[option]}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
           <SubmitButton />
         </form>
       ) : (
@@ -89,10 +88,10 @@ export function OrderStatusForm({
         </p>
       )}
       {state.success ? (
-        <p role="status" className="mt-4 text-sm text-green-800">{state.success}</p>
+        <p role="status" className="mt-4 text-body-sm text-success">{state.success}</p>
       ) : null}
       {state.message ? (
-        <p role="alert" className="mt-4 text-sm text-red-800">{state.message}</p>
+        <p role="alert" className="mt-4 text-body-sm text-destructive">{state.message}</p>
       ) : null}
     </section>
   );
