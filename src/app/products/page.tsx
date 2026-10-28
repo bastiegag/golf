@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { CategoryFilter } from '@/features/products/components/category-filter';
 import { ProductCard } from '@/features/products/components/product-card';
+import { Container } from '@/components/layout/container';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   getActiveCategories,
   getActiveProducts,
@@ -41,7 +43,7 @@ export default async function ProductsPage({
     : 'No products yet. Connect PostgreSQL and run the seed command to stock the store.';
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+    <Container className="py-16 sm:py-20">
       <div className="mb-8 max-w-2xl">
         <p className="mb-4 text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
           The collection
@@ -72,10 +74,8 @@ export default async function ProductsPage({
           ))}
         </ul>
       ) : (
-        <p className="rounded-sm border border-dashed border-border px-6 py-12 text-center text-muted-foreground">
-          {emptyMessage}
-        </p>
+        <EmptyState title={categorySlug ? 'No products found' : 'No products yet'} description={emptyMessage} />
       )}
-    </div>
+    </Container>
   );
 }

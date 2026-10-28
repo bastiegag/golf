@@ -8,6 +8,7 @@ import { getAdminOrders } from '@/features/admin/orders/queries';
 import { parseOrderFilters } from '@/features/admin/orders/schemas';
 import { ORDER_STATUS_LABELS } from '@/features/admin/orders/transitions';
 import { OrderTable } from '@/features/admin/orders/components/order-table';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export const metadata: Metadata = { title: 'Orders' };
 export const dynamic = 'force-dynamic';
@@ -70,9 +71,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       {result.orders.length ? (
         <OrderTable orders={result.orders} />
       ) : (
-        <p className="rounded-sm border border-dashed border-border px-6 py-12 text-center text-muted-foreground">
-          No orders match these filters.
-        </p>
+        <EmptyState title="No orders match these filters." />
       )}
       <nav aria-label="Order pages" className="mt-6 flex items-center justify-between text-sm">
         <span className="text-muted-foreground">Page {result.page} of {result.pageCount}</span>

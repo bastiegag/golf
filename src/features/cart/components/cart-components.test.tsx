@@ -1,12 +1,20 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { waitFor } from '@testing-library/react';
+import { toast } from 'sonner';
 import { CartProvider } from '@/features/cart/context';
 import { AddToCartButton } from '@/features/cart/components/add-to-cart-button';
 import { CartIndicator } from '@/features/cart/components/cart-indicator';
 import { CartPage } from '@/features/cart/components/cart-page';
 import type { CartProduct } from '@/features/cart/types';
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    warning: vi.fn(),
+  },
+}));
 
 const product: CartProduct = {
   productId: 'product-1',
@@ -26,7 +34,7 @@ function renderWithCart(children: React.ReactNode) {
 }
 
 describe('cart components', () => {
-  it('adds a product and announces accessible feedback', async () => {
+  it('adds a product and announces transient feedback', async () => {
     const user = userEvent.setup();
 
     renderWithCart(
@@ -40,10 +48,7 @@ describe('cart components', () => {
     await waitFor(() => expect(addButton).toBeEnabled());
     await user.click(addButton);
 
-    expect(
-      await screen.findByRole('status'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(toast.success).toHaveBeenCalledWith(
       'Harbor Knit added to your cart.',
     );
     expect(

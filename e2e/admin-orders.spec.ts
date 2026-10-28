@@ -106,13 +106,13 @@ test('cancellation confirmation can be dismissed or accepted', async ({ page }) 
     await openOrder(page, fixture);
 
     await page.locator('#next-status').selectOption('CANCELLED');
-    page.once('dialog', (dialog) => dialog.dismiss());
     await page.getByRole('button', { name: 'Update status' }).click();
+    await page.locator('button:visible').filter({ hasText: 'Keep order' }).click();
     await expect(page.getByText('Pending', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('No status changes recorded.', { exact: true })).toBeVisible();
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Update status' }).click();
+    await page.locator('button:visible').filter({ hasText: 'Cancel order' }).click();
     await expect(page.getByText('Pending → Cancelled', { exact: true })).toBeVisible();
     await expect(page.getByText('No further fulfillment transitions are available.', { exact: true })).toBeVisible();
   } finally {
@@ -140,8 +140,8 @@ test('stale order forms are rejected after another session changes the order', a
     await expect(firstPage.getByRole('status')).toContainText('updated');
 
     await secondPage.locator('#next-status').selectOption('CANCELLED');
-    secondPage.once('dialog', (dialog) => dialog.accept());
     await secondPage.getByRole('button', { name: 'Update status' }).click();
+    await secondPage.locator('button:visible').filter({ hasText: 'Cancel order' }).click();
     await expect(
       secondPage.getByText(
         'This order changed in another session. Refresh the page before updating its status.',

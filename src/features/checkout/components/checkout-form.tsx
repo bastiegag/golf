@@ -297,7 +297,10 @@ export function CheckoutForm() {
 
       {pricesChanged && !priceConfirmed ? (
         <div className="space-y-3">
-          <p className="text-body-sm text-warning" role="alert">
+          <p
+            className="text-body-sm text-warning-subtle-foreground"
+            role="alert"
+          >
             Product prices changed. Review the updated total and confirm it
             before placing your order.
           </p>

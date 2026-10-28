@@ -191,11 +191,11 @@ development seed against production. The seed explicitly refuses to run when
 ## Storybook UI primitives
 
 Run `npm run storybook` to start Storybook locally or
-`npm run build-storybook` to create the static Storybook build. Reusable
-primitives and their colocated stories live in `src/components/ui`; the
-current inventory contains the shared `Button` primitive. Stories are
-discovered from that directory and use the same `src/app/globals.css`
-Tailwind CSS 4 tokens as the Next.js application.
+`npm run build-storybook` to create the static Storybook build. Reusable primitives and their colocated stories live in `src/components/ui`.
+The inventory includes actions, form controls, layout foundations, feedback
+states, overlays, icons, and loading primitives. Stories are discovered from
+that directory and use the same `src/app/globals.css` Tailwind CSS 4 tokens
+as the Next.js application.
 
 Add a new primitive story beside its component, use the `UI/` category
 structure, expose only genuine public props through Controls, and include
@@ -302,6 +302,41 @@ Use semantic token utilities rather than raw palette colors for shared and
 status styling. New generic primitives belong in `src/components/ui` with
 colocated stories and behavioral tests; business-specific UI belongs in its
 feature directory and is not part of the current Storybook scope.
+
+## Feedback, loading, and error handling
+
+Shared feedback primitives include `Icon`, `Spinner`, `Skeleton`,
+`LoadingState`, `Alert`, `EmptyState`, `ErrorState`, `AlertDialog`, `Tooltip`,
+`SubmitButton`, and the Sonner-backed `Toaster`. Their colocated stories live
+under the `UI/Feedback` and `UI/Overlays` Storybook categories.
+
+Use an `Alert` for persistent contextual feedback that belongs with the
+content, and use a toast for brief completion feedback such as adding an item
+to the cart. Do not duplicate the same message in both places. Use
+`LoadingState` when a user needs an announced status message, and use
+`Skeleton` for decorative layout placeholders while content is loading.
+`SubmitButton` composes with React 19 Server Action forms and derives its
+pending state from `useFormStatus`.
+
+Use `ErrorState` for recoverable content-level failures and empty states for
+successful queries with no results. Route-level `error.tsx` and
+`global-error.tsx` boundaries use the shared error presentation while keeping
+raw error details out of the UI. Destructive or irreversible actions use
+`AlertDialog` rather than browser confirmation dialogs; focus is returned by
+Radix after cancellation or completion. `Tooltip` is limited to supplemental
+help and must not be the only accessible name for an action.
+
+Icons are decorative by default. Give a meaningful icon an `aria-label`, and
+always give an icon-only button its accessible name on the button itself.
+Loading and feedback announcements use polite live regions unless an urgent
+error specifically requires assertive semantics. Shared primitives honor the
+global reduced-motion rules. Storybook's accessibility addon and unit tests
+cover the common semantics, but manual keyboard, focus, contrast, and
+screen-reader review remains necessary.
+
+The current Storybook scope remains intentionally limited to generic
+foundations and primitives. Business component stories and complete-page
+stories are postponed until the developer finishes the storefront design.
 
 ## Testing
 

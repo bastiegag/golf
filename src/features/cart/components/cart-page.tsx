@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/layout/container';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useCart } from '@/features/cart/context';
 import { MAX_CART_QUANTITY } from '@/features/cart/constants';
 import { CartSummary } from '@/features/cart/components/cart-summary';
@@ -35,18 +36,19 @@ export function CartPage() {
         <h1 className="text-4xl font-medium tracking-[-0.045em] sm:text-5xl">
           Your cart
         </h1>
-        <div className="mt-12 rounded-sm border border-dashed border-border px-6 py-16 text-center">
-          <h2 className="text-xl font-medium">Your cart is empty</h2>
-          <p className="mt-3 text-muted-foreground">
-            Add something considered to get started.
-          </p>
-          <Link
-            href="/products"
-            className="mt-6 inline-flex text-sm font-medium underline underline-offset-4 focus-visible:outline-offset-4"
-          >
-            Continue shopping
-          </Link>
-        </div>
+        <EmptyState
+          className="mt-12"
+          title="Your cart is empty"
+          description="Add something considered to get started."
+          action={
+            <Link
+              href="/products"
+              className="text-sm font-medium underline underline-offset-4 focus-visible:outline-offset-4"
+            >
+              Continue shopping
+            </Link>
+          }
+        />
       </Container>
     );
   }

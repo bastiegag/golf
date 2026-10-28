@@ -116,7 +116,9 @@ export function ProductForm({
             value={displayedValues.price}
             onChange={(event) => updateValue('price', event.target.value)}
             aria-invalid={Boolean(error('price'))}
-            aria-describedby="price-hint"
+            aria-describedby={
+              error('price') ? 'price-hint price-error' : 'price-hint'
+            }
           />
           <FieldDescription id="price-hint">
             Use dollars and up to two decimal places.

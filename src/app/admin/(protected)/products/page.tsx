@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export const metadata: Metadata = { title: 'Products' };
 export const dynamic = 'force-dynamic';
@@ -80,9 +81,13 @@ export default async function AdminProductsPage({ searchParams }: Props) {
       {result.products.length ? (
         <ProductTable products={result.products} />
       ) : (
-        <p className="rounded-sm border border-dashed border-border px-6 py-12 text-center text-muted-foreground">
-          {result.total === 0 ? 'No products match these filters.' : 'No products on this page.'}
-        </p>
+        <EmptyState
+          title={
+            result.total === 0
+              ? 'No products match these filters.'
+              : 'No products on this page.'
+          }
+        />
       )}
       <nav aria-label="Product pages" className="mt-6 flex items-center justify-between text-sm">
         <span className="text-muted-foreground">Page {currentPage} of {pageCount}</span>

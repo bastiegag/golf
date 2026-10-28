@@ -1,17 +1,35 @@
 'use client';
 
+import { forwardRef, useRef, useState, type ButtonHTMLAttributes } from 'react';
 import { useFormStatus } from 'react-dom';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { toggleCategoryStatusAction } from '../actions';
 
-function StatusSubmitButton({ isActive }: { isActive: boolean }) {
+const StatusSubmitButton = forwardRef<
+  HTMLButtonElement,
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    isActive: boolean;
+    type?: 'button' | 'submit';
+  }
+>(function StatusSubmitButton({
+  isActive,
+  type = 'submit',
+  ...props
+}, ref) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant="outline" disabled={pending}>
+    <Button
+      {...props}
+      ref={ref}
+      type={type}
+      variant="outline"
+      disabled={pending || props.disabled}
+    >
       {pending ? 'Saving…' : isActive ? 'Deactivate' : 'Activate'}
     </Button>
   );
-}
+});
 
 export function StatusButton({
   id,
@@ -22,26 +40,59 @@ export function StatusButton({
   isActive: boolean;
   productCount: number;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const confirmedRef = useRef(false);
+  const [open, setOpen] = useState(false);
+
   return (
     <form
+      ref={formRef}
       action={toggleCategoryStatusAction}
       onSubmit={(event) => {
-        if (
-          isActive &&
-          productCount > 0 &&
-          !window.confirm(
-            `Deactivating this category hides ${productCount} product${
-              productCount === 1 ? '' : 's'
-            } from the storefront. Continue?`,
-          )
-        ) {
+        if (isActive && !confirmedRef.current) {
           event.preventDefault();
+          setOpen(true);
+          return;
         }
+        confirmedRef.current = false;
       }}
     >
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="isActive" value={String(!isActive)} />
-      <StatusSubmitButton isActive={isActive} />
+      {isActive ? (
+        <AlertDialog open={open} onOpenChange={setOpen}>
+          <AlertDialogTrigger asChild>
+            <StatusSubmitButton isActive={isActive} type="button" />
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogTitle>Deactivate this category?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This hides {productCount} product{productCount === 1 ? '' : 's'} from
+              the public storefront.
+            </AlertDialogDescription>
+            <div className="mt-6 flex justify-end gap-3">
+              <AlertDialogCancel asChild>
+                <Button type="button" variant="outline">
+                  Keep active
+                </Button>
+              </AlertDialogCancel>
+              <AlertDialogAction
+                asChild
+                onClick={() => {
+                  confirmedRef.current = true;
+                  formRef.current?.requestSubmit();
+                }}
+              >
+                <Button type="button" variant="destructive">
+                  Deactivate
+                </Button>
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : (
+        <StatusSubmitButton isActive={isActive} />
+      )}
     </form>
   );
 }

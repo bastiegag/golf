@@ -120,16 +120,20 @@ test('administrator can manage category visibility', async ({ page }) => {
 
     await page.goto('/admin/categories');
     const updatedRow = page.getByRole('row').filter({ hasText: updatedCategoryName });
-    page.once('dialog', (dialog) => dialog.dismiss());
     await updatedRow.getByRole('button', { name: 'Deactivate' }).click();
+    await page.locator('button:visible').filter({ hasText: 'Keep active' }).click();
     await expect(updatedRow.getByRole('button', { name: 'Deactivate' })).toBeVisible();
     await page.goto(`/products/${productSlug}`);
     await expect(page.getByRole('heading', { name: productName })).toBeVisible();
 
     await page.goto('/admin/categories');
     const activeRow = page.getByRole('row').filter({ hasText: updatedCategoryName });
-    page.once('dialog', (dialog) => dialog.accept());
     await activeRow.getByRole('button', { name: 'Deactivate' }).click();
+    await page
+      .locator('button:visible')
+      .filter({ hasText: 'Deactivate' })
+      .last()
+      .click();
     await expect(activeRow.getByRole('button', { name: 'Activate' })).toBeVisible();
     await page.goto('/products');
     await expect(page.getByRole('link', { name: updatedCategoryName })).not.toBeVisible();

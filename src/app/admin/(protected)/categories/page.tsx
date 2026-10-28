@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getAdminCategories } from '@/features/admin/categories/queries';
 import { CategoryTable } from '@/features/admin/categories/components/category-table';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export const metadata: Metadata = { title: 'Categories' };
 export const dynamic = 'force-dynamic';
@@ -43,9 +44,7 @@ export default async function AdminCategoriesPage({
       {categories.length > 0 ? (
         <CategoryTable categories={categories} />
       ) : (
-        <p className="rounded-sm border border-dashed border-border px-6 py-12 text-center text-muted-foreground">
-          No categories yet.
-        </p>
+        <EmptyState title="No categories yet." />
       )}
     </div>
   );

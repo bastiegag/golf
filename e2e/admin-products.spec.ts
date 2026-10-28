@@ -78,8 +78,12 @@ test.describe('administrator product management', () => {
 
       await page.goto('/admin/products');
       const row = page.getByRole('row').filter({ hasText: 'Updated E2E Product' });
-      page.once('dialog', (dialog) => dialog.accept());
       await row.getByRole('button', { name: 'Deactivate' }).click();
+      await page
+        .locator('button:visible')
+        .filter({ hasText: 'Deactivate' })
+        .last()
+        .click();
       await expect(row.getByRole('button', { name: 'Activate' })).toBeVisible();
       await page.goto(`/products/${updatedSlug}`);
       await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

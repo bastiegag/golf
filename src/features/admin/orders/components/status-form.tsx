@@ -1,7 +1,16 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
@@ -18,17 +27,6 @@ function SubmitButton() {
     <Button
       type="submit"
       disabled={pending}
-      onClick={(event) => {
-        if (
-          event.currentTarget.form?.elements.namedItem('status') instanceof
-            HTMLSelectElement &&
-          (event.currentTarget.form?.elements.namedItem('status') as HTMLSelectElement)
-            .value === 'CANCELLED' &&
-          !window.confirm('Cancel this order? This action cannot be undone.')
-        ) {
-          event.preventDefault();
-        }
-      }}
     >
       {pending ? 'Saving…' : 'Update status'}
     </Button>
@@ -51,6 +49,9 @@ export function OrderStatusForm({
     action,
     {},
   );
+  const formRef = useRef<HTMLFormElement>(null);
+  const confirmedRef = useRef(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const options = getAllowedOrderTransitions(status);
 
   return (
@@ -60,9 +61,23 @@ export function OrderStatusForm({
         Current status: <strong>{ORDER_STATUS_LABELS[status]}</strong>
       </p>
       {options.length ? (
+        <>
         <form
+          ref={formRef}
           action={formAction}
           className="mt-5 flex flex-wrap items-end gap-3"
+          onSubmit={(event) => {
+            const formData = new FormData(event.currentTarget);
+            if (
+              formData.get('status') === 'CANCELLED' &&
+              !confirmedRef.current
+            ) {
+              event.preventDefault();
+              setCancelDialogOpen(true);
+              return;
+            }
+            confirmedRef.current = false;
+          }}
         >
           <input type="hidden" name="orderId" value={orderId} />
           <input type="hidden" name="expectedStatus" value={status} />
@@ -82,6 +97,36 @@ export function OrderStatusForm({
           </Field>
           <SubmitButton />
         </form>
+        <AlertDialog
+          open={cancelDialogOpen}
+          onOpenChange={setCancelDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cancellation is permanent and cannot be undone.
+            </AlertDialogDescription>
+            <div className="mt-6 flex justify-end gap-3">
+              <AlertDialogCancel asChild>
+                <Button type="button" variant="outline">
+                  Keep order
+                </Button>
+              </AlertDialogCancel>
+              <AlertDialogAction
+                asChild
+                onClick={() => {
+                  confirmedRef.current = true;
+                  formRef.current?.requestSubmit();
+                }}
+              >
+                <Button type="button" variant="destructive">
+                  Cancel order
+                </Button>
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+        </>
       ) : (
         <p className="mt-4 text-sm text-muted-foreground">
           No further fulfillment transitions are available.
