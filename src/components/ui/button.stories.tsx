@@ -16,9 +16,8 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['default', 'outline'],
+      options: ['default', 'secondary', 'outline', 'ghost', 'destructive'],
     },
-    asChild: { control: 'boolean' },
     disabled: { control: 'boolean' },
   },
 } satisfies Meta<typeof Button>;
@@ -37,6 +36,27 @@ export const Outline: Story = {
   args: {
     variant: 'outline',
     children: 'Secondary action',
+  },
+};
+
+export const Secondary: Story = {
+  args: {
+    variant: 'secondary',
+    children: 'Secondary action',
+  },
+};
+
+export const Ghost: Story = {
+  args: {
+    variant: 'ghost',
+    children: 'Low emphasis action',
+  },
+};
+
+export const Destructive: Story = {
+  args: {
+    variant: 'destructive',
+    children: 'Delete item',
   },
 };
 

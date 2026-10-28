@@ -207,6 +207,35 @@ This phase intentionally excludes business components and complete pages,
 including product, cart, checkout, and administration stories. Those stories
 will be added only after the storefront design is finalized by the developer.
 
+## Design System foundations
+
+The shared Design System foundation lives in `src/app/globals.css`. Base
+palettes (`--palette-*`) provide reusable color scales, while semantic tokens
+such as `--primary`, `--background`, and `--muted-foreground` are the API
+consumed by components. The semantic tokens support light mode by default and
+dark mode when a `.dark` class is applied to an ancestor. The default colors
+and typography are temporary foundations; the developer owns the final Parrr!
+visual identity.
+
+The CSS uses Tailwind CSS 4 `@theme inline` mappings, so Tailwind utilities
+and components automatically follow token changes. Typography uses the
+`text-display`, `text-heading-*`, `text-body*`, and `text-caption` scale.
+Spacing continues to use Tailwind's standard scale, with shared control
+heights, radii, shadows, and focus-ring tokens defined centrally. Reduced
+motion preferences disable transitions and smooth scrolling.
+
+The reusable layout primitives are `Stack` and `Container` in
+`src/components/layout`. They intentionally expose a small set of typed,
+forwarding props rather than recreating the full Flexbox or layout API.
+Foundations stories under `src/components/foundations` show the live colors,
+typography, spacing, radius, and shadow tokens in Storybook. The Storybook
+toolbar can switch between light and dark previews.
+
+To customize the brand later, update the base palette and semantic token
+values in `globals.css`; components should continue consuming semantic
+utilities rather than raw palette colors. Add future generic primitives next
+to their implementation with a colocated story and focused behavioral tests.
+
 ## Testing
 
 - `npm run test:unit` runs Vitest and React Testing Library tests.
