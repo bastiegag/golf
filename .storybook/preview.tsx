@@ -1,5 +1,30 @@
+import { useEffect } from 'react';
 import type { Preview } from '@storybook/nextjs-vite';
 import '../src/app/globals.css';
+
+function ThemeDecorator({
+  children,
+  theme,
+}: {
+  children: React.ReactNode;
+  theme: string;
+}) {
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+
+    return () => {
+      document.documentElement.classList.remove('dark');
+    };
+  }, [theme]);
+
+  return (
+    <div
+      className={theme === 'dark' ? 'dark min-h-screen bg-background text-foreground' : 'min-h-screen bg-background text-foreground'}
+    >
+      {children}
+    </div>
+  );
+}
 
 const preview: Preview = {
   globalTypes: {
@@ -16,9 +41,9 @@ const preview: Preview = {
   },
   decorators: [
     (Story, context) => (
-      <div className={context.globals.theme === 'dark' ? 'dark' : undefined}>
+      <ThemeDecorator theme={context.globals.theme}>
         <Story />
-      </div>
+      </ThemeDecorator>
     ),
   ],
   parameters: {

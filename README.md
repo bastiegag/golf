@@ -236,6 +236,43 @@ values in `globals.css`; components should continue consuming semantic
 utilities rather than raw palette colors. Add future generic primitives next
 to their implementation with a colocated story and focused behavioral tests.
 
+## Form primitives
+
+Native form primitives live in `src/components/ui`:
+
+- `Input`, `Textarea`, and `Select` wrap the corresponding HTML controls.
+- `Checkbox` preserves native checkbox semantics and supports an
+  indeterminate visual state.
+- `Label` renders a semantic label with `htmlFor` support.
+- `Field`, `FieldLabel`, `FieldDescription`, and `FieldError` provide
+  explicit composition for labels, descriptions, and server-returned errors.
+
+These components support refs, controlled and uncontrolled values, standard
+`name`/`defaultValue` submission, native validation, and React 19
+`useActionState`/Server Action forms without owning form state. For example:
+
+```tsx
+<form action={serverAction}>
+  <Field>
+    <FieldLabel htmlFor="name">Name</FieldLabel>
+    <Input id="name" name="name" />
+  </Field>
+  <Button type="submit">Save</Button>
+</form>
+```
+
+Field relationships are explicit: controls should use matching `id` and
+`htmlFor` values, and `aria-describedby`/`aria-errormessage` should reference
+the relevant description or error IDs. Unchecked native checkboxes are not
+included in `FormData`; checked boxes submit their `name` and value. Zod
+validation remains on the server in feature-specific code. No form-state
+library is used or required.
+
+Form stories are under `UI/Forms` in Storybook and include disabled, invalid,
+required, description, error, native submission, and indeterminate examples.
+The accessibility addon checks stable stories, while manual keyboard and
+focus review remains necessary.
+
 ## Testing
 
 - `npm run test:unit` runs Vitest and React Testing Library tests.
