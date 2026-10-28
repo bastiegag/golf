@@ -3,6 +3,9 @@ import '../src/app/globals.css';
 
 const preview: Preview = {
   parameters: {
+    a11y: {
+      test: 'todo',
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,

@@ -188,6 +188,25 @@ the migration and taking the normal database backup. Do not use
 development seed against production. The seed explicitly refuses to run when
 `NODE_ENV=production`.
 
+## Storybook UI primitives
+
+Run `npm run storybook` to start Storybook locally or
+`npm run build-storybook` to create the static Storybook build. Reusable
+primitives and their colocated stories live in `src/components/ui`; the
+current inventory contains the shared `Button` primitive. Stories are
+discovered from that directory and use the same `src/app/globals.css`
+Tailwind CSS 4 tokens as the Next.js application.
+
+Add a new primitive story beside its component, use the `UI/` category
+structure, expose only genuine public props through Controls, and include
+keyboard or state interaction coverage where behavior warrants it. The
+Storybook accessibility addon is enabled for automated checks; manual
+keyboard and focus review is still required.
+
+This phase intentionally excludes business components and complete pages,
+including product, cart, checkout, and administration stories. Those stories
+will be added only after the storefront design is finalized by the developer.
+
 ## Testing
 
 - `npm run test:unit` runs Vitest and React Testing Library tests.
